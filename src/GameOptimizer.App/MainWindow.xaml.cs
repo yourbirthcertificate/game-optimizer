@@ -131,6 +131,14 @@ public partial class MainWindow : Window
 
     void Filter_Changed(object sender, RoutedEventArgs e) => _view?.Refresh();
 
+    /// <summary>Opens a game's PCGamingWiki page or Steam guides in the default browser.</summary>
+    void Link_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not string url || !url.StartsWith("https://", StringComparison.Ordinal)) return;
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch (System.ComponentModel.Win32Exception ex) { MessageBox.Show(this, "Could not open the browser: " + ex.Message, "Link"); }
+    }
+
     async void Rescan_Click(object sender, RoutedEventArgs e) => await LoadAsync();
 
     async void PreviewRow_Click(object sender, RoutedEventArgs e)

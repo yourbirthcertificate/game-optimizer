@@ -34,11 +34,13 @@ public sealed class GameRow : Observable
     {
         _owner = owner; Game = game; _step = step; _isCustom = isCustom;
         Recommended = pcStep;
+        Links = GameLinks.For(game);
     }
 
     public GameInfo Game { get; }
     public string Name => Game.Name;
     public string EngineText => Game.Engine == GameEngine.Unknown ? "Unknown engine" : Game.Engine.ToString();
+    public List<GameLink> Links { get; } = new();
 
     /// <summary>Bound to the row slider. A change made by the user marks the game as custom.</summary>
     public int Step

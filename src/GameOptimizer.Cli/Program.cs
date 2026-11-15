@@ -120,6 +120,8 @@ static async Task<int> Recommend(List<string> argv)
     {
         if (!s.Recs.TryGetValue(g.Id, out var r)) continue;
         Console.WriteLine($"{Trim(g.Name, 40),-40} {r.Step.Label(),-10} {r.Reason}");
+        if (filters.Count > 0)
+            foreach (var l in GameLinks.For(g)) Console.WriteLine($"{"",-51}{l.Label}: {l.Url}");
     }
     return 0;
 }
@@ -190,6 +192,7 @@ static void Print(GamePlan p, GameRecommendation? rec)
 {
     Console.WriteLine($"\n== {p.Game.Name} ({p.Game.Engine}, step {p.Step.Label()}): {p.StatusText}");
     if (rec is not null) Console.WriteLine($"   recommended {rec.Step.Label()}: {rec.Reason}");
+    foreach (var l in GameLinks.For(p.Game)) Console.WriteLine($"   {l.Label}: {l.Url}");
     foreach (var f in p.Files)
     {
         Console.WriteLine($"   {f.Path}");

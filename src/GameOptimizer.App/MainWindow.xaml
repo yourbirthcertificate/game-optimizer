@@ -86,6 +86,18 @@
                                     <TextBlock Text="  ⚠" Foreground="{StaticResource Warn}" ToolTip="See the preview for a warning"
                                                Visibility="{Binding HasWarning, Converter={StaticResource Vis}}"/>
                                 </StackPanel>
+                                <ItemsControl ItemsSource="{Binding Links}" Margin="-4,2,0,0">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource Link}" Tag="{Binding Url}" ToolTip="{Binding Url}" Click="Link_Click">
+                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource Custom}" FontSize="11"/>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
                                 <Slider Value="{Binding Step, Mode=TwoWay}" IsEnabled="{Binding IsSupported}"/>

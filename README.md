@@ -47,7 +47,10 @@ steps above the PC-wide step). If nothing is known, the PC-wide step is used. Ho
 "Recommended" under a game's slider to see the reason.
 
 The **All games** slider shifts every game together, from three steps faster to three
-steps nicer than its recommendation. Moving a game's own slider marks it **custom**; it
+steps nicer than its recommendation.
+
+Each game also has links to its PCGamingWiki page and its top-rated Steam guides, for
+the fixes and tweaks people have written up. Moving a game's own slider marks it **custom**; it
 then stays where you put it until you press the reset arrow next to it. Your choices are
 saved.
 
@@ -163,7 +166,10 @@ dotnet publish src/GameOptimizer.Cli -c Release -r win-x64
 - Requirement lists name one or two cards and say nothing about frame rate, so the
   recommendation cannot know that a game is CPU-bound or has a heavy ray tracing mode.
 - Community guides are not read automatically: they are free text, and turning them into
-  settings would be guessing. Their advice belongs in a rule file, where it can be checked.
+  settings would be guessing. The app links to them instead; advice worth automating belongs
+  in a rule file, where it can be checked.
+- PCGamingWiki currently refuses the app's own lookups from some connections. When it does,
+  those games fall back to the release year, and the refusal is not cached.
 
 ## Adding a game
 

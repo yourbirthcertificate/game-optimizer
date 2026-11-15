@@ -158,7 +158,22 @@ public static partial class RequirementSource
 
     static async Task<JsonNode?> FetchPcgwTitleAsync(string appId, CancellationToken ct)
     {
+        // The wiki's Cargo query API maps a Steam app id to its page. The appid.php redirect is the fallback.
+        try
+        {
+            var where = Uri.EscapeDataString($"Infobox_game.Steam_AppID HOLDS \"{appId}\"");
+            using var q = await Pcgw.SendAsync("https://www.pcgamingwiki.com/w/api.php?action=cargoquery&format=json&limit=1" +
+                                               "&tables=Infobox_game&fields=Infobox_game._pageName%3DPage&where=" + where, ct);
+            if (q.IsSuccessStatusCode && JsonNode.Parse(await q.Content.ReadAsStringAsync(ct))?["cargoquery"] is JsonArray rows)
+                return new JsonObject { ["title"] = rows.Count > 0 ? rows[0]?["title"]?["Page"]?.GetValue<string>() : null };
+        }
+        catch (JsonException) { }
         using var resp = await Pcgw.SendAsync($"https://www.pcgamingwiki.com/api/appid.php?appid={appId}", ct);
+        // Only a redirect or a plain answer means "this is (or is not) the page". A refusal or a server
+        // error must not be cached as "no page", so it counts as a failed lookup.
+        int code = (int)resp.StatusCode;
+        if (code is not ((>= 200 and < 400) or 404))
+            throw new HttpRequestException($"PCGamingWiki answered {code}", null, resp.StatusCode);
         var loc = resp.Headers.Location?.ToString() ?? "";
         int at = loc.IndexOf("/wiki/", StringComparison.Ordinal);
         string? title = at < 0 ? null : Uri.UnescapeDataString(loc[(at + 6)..]).Replace('_', ' ');
