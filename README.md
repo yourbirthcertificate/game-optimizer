@@ -5,6 +5,12 @@ settings for your hardware in one click. It works on games that GPU vendor tools
 know about, because it reads each game's engine settings directly instead of relying on
 a list of supported titles.
 
+GameOptimizer is the sister project of
+[Game Spec Check](https://github.com/yourbirthcertificate/game-spec-check), which answers
+whether this PC can run a game. Game Spec Check tells you if a game will run; GameOptimizer
+sets it up to run well. They share the graphics card table, and GameOptimizer reuses the
+requirement lookups Game Spec Check has already cached.
+
 ## About this project
 
 - **A personal tool.** It was made for the author's own use and is shared as is, with no support and no promise of updates.
