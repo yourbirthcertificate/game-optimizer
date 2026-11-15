@@ -42,7 +42,7 @@ public static partial class RequirementSource
     {
         var h = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, AutomaticDecompression = DecompressionMethods.All })
         { Timeout = TimeSpan.FromSeconds(20) };
-        h.DefaultRequestHeaders.UserAgent.ParseAdd("GameOptimizer/0.1 (+https://github.com/yourbirthcertificate/game-optimizer)");
+        h.DefaultRequestHeaders.UserAgent.ParseAdd("GameOptimizer/0.2 (+https://github.com/yourbirthcertificate/game-optimizer)");
         h.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         return h;
     }
