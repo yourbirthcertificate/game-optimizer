@@ -441,6 +441,34 @@ public class DiscoveryTests
     }
 
     [Fact]
+    public void Epic_installs_without_a_launcher_record_are_found_by_their_store_folder()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "gameopt-epic-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            void Make(string name, params string[] storeEntries)
+            {
+                var store = Directory.CreateDirectory(Path.Combine(root, name, ".egstore")).FullName;
+                foreach (var e in storeEntries)
+                    if (e.EndsWith(".manifest")) File.WriteAllText(Path.Combine(store, e), "x");
+                    else Directory.CreateDirectory(Path.Combine(store, e));
+            }
+            Make("Complete", "ABC.manifest");
+            Make("Downloading", "ABC.manifest", "bps");
+            Make("NoManifest");
+            Make("Listed", "DEF.manifest");
+            Directory.CreateDirectory(Path.Combine(root, "Launcher"));
+
+            var found = LibraryScanner.FindEpicFolders(new[] { root, root + "\\" }, new[] { Path.Combine(root, "Listed") });
+            var g = Assert.Single(found);
+            Assert.Equal("Complete", g.Name);
+            Assert.Equal("epic:Complete", g.Id);
+            Assert.Equal("Epic", g.Store);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
     public void Linked_app_id_is_explicit_and_never_guessed_from_the_name()
     {
         var hw = new HardwareInfo();

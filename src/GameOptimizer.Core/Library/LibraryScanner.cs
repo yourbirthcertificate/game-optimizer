@@ -158,7 +158,62 @@ public static class LibraryScanner
     static void ScanEpic(ScanResult r)
     {
         var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Epic", "EpicGamesLauncher", "Data", "Manifests");
-        if (!Directory.Exists(dir)) return;
+        var before = r.Games.Count;
+        if (Directory.Exists(dir)) ReadEpicItems(r, dir);
+        var listed = r.Games.Skip(before).ToList();
+
+        // The launcher sometimes fails to write its install records (a missing or unwritable
+        // Manifests folder), so also look for installs by the .egstore folder each one carries.
+        var roots = new List<string> { Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Epic Games") };
+        roots.AddRange(listed.Select(g => Path.GetDirectoryName(g.InstallDir.TrimEnd('/', Path.DirectorySeparatorChar)) ?? ""));
+        foreach (var d in DriveInfo.GetDrives())
+        {
+            try { if (d.DriveType != DriveType.Fixed || !d.IsReady) continue; }
+            catch (IOException) { continue; }
+            roots.Add(Path.Combine(d.RootDirectory.FullName, "Epic Games"));
+            roots.Add(Path.Combine(d.RootDirectory.FullName, "Program Files", "Epic Games"));
+        }
+        foreach (var g in FindEpicFolders(roots, listed.Select(g => g.InstallDir)))
+        {
+            r.Games.Add(g);
+            r.Notes.Add($"Found {g.Name} by its Epic store folder; the Epic launcher has no install record for it.");
+        }
+    }
+
+    /// <summary>
+    /// Epic installs that the launcher has no record for: folders under the given library roots
+    /// holding a .egstore folder with a build manifest. Folders in <paramref name="known"/> are skipped.
+    /// </summary>
+    public static List<GameInfo> FindEpicFolders(IEnumerable<string> roots, IEnumerable<string> known)
+    {
+        var seen = new HashSet<string>(known.Select(NormalizeDir));
+        var found = new List<GameInfo>();
+        foreach (var root in roots.Where(s => s.Length > 0).Select(NormalizeDir).Distinct())
+        {
+            if (!Directory.Exists(root)) continue;
+            IEnumerable<string> subs;
+            try { subs = Directory.EnumerateDirectories(root).ToList(); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
+            foreach (var sub in subs)
+            {
+                try
+                {
+                    var store = Path.Combine(sub, ".egstore");
+                    if (!Directory.Exists(store) || !Directory.EnumerateFiles(store, "*.manifest").Any()) continue;
+                    // A download in progress keeps its staging data here; the build is not complete yet.
+                    if (Directory.Exists(Path.Combine(store, "bps")) || Directory.Exists(Path.Combine(store, "Pending"))) continue;
+                    if (!seen.Add(NormalizeDir(sub))) continue;
+                    var name = Path.GetFileName(sub);
+                    found.Add(new GameInfo { Id = "epic:" + name, Name = name, InstallDir = sub, Store = "Epic" });
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            }
+        }
+        return found;
+    }
+
+    static void ReadEpicItems(ScanResult r, string dir)
+    {
         foreach (var item in Directory.EnumerateFiles(dir, "*.item"))
         {
             try
