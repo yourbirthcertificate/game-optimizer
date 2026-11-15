@@ -1,0 +1,32 @@
+{
+  // VOID/BREAKER (Unreal Engine 5.7). The in-game menu saves its graphics settings to
+  // Settings.sav, and the game applies those over GameUserSettings.ini at startup,
+  // so both files have to agree. The engine handler still edits the ini.
+  "id": "voidbreaker",
+  "name": "VOID/BREAKER",
+  "match": { "steamAppIds": ["2615540"], "installDirs": ["VOIDBREAKER"] },
+  "notes": "Quality values in Settings.sav use the same 0-3 scale as Unreal's scalability groups.",
+  "files": [
+    {
+      "format": "gvas",
+      "path": "%LOCALAPPDATA%/VOIDBREAKER/Saved/SaveGames/Settings.sav",
+      "steamCloud": true,
+      "set": {
+        "Resolution": "$nativeResolution",
+        "WindowMode": "EWindowMode::Fullscreen",
+        "VSyncEnabled?": false,
+        "FrameRateLimit": "$fpsCap",
+        "TextureQuality": "$ue.Texture",
+        "ShadowQuality": "$ue.Shadow",
+        "AntiAliasingQuality": "$ue.AntiAliasing",
+        "GlobalIlluminationQuality": "$ue.GlobalIllumination",
+        "FoliageQuality": "$ue.Foliage",
+        "ViewDistanceQuality": "$ue.ViewDistance",
+        "PostProcessingQuality": "$ue.PostProcess",
+        "EffectsQuality": "$ue.Effects",
+        "ReflectionsQuality": "$ue.Reflection",
+        "MotionBlurQuality": 0
+      }
+    }
+  ]
+}
