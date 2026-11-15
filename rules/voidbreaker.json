@@ -5,16 +5,19 @@
   "id": "voidbreaker",
   "name": "VOID/BREAKER",
   "match": { "steamAppIds": ["2615540"], "installDirs": ["VOIDBREAKER"] },
-  "notes": "Quality values in Settings.sav use the same 0-3 scale as Unreal's scalability groups.",
+  "notes": "Quality values in Settings.sav use the same 0-3 scale as Unreal's scalability groups. How the game writes 'no frame cap' is not verified, so fpsUncappedValue is not set and 'uncapped' leaves FrameRateLimit alone.",
+  "gameVersion": "build CL-4516",
+  "source": "Settings changed in the game's menu and read back from Settings.sav on the author's PC",
+  "verified": "2026-11-15",
   "files": [
     {
       "format": "gvas",
       "path": "%LOCALAPPDATA%/VOIDBREAKER/Saved/SaveGames/Settings.sav",
       "steamCloud": true,
       "set": {
-        "Resolution": "$nativeResolution",
-        "WindowMode": "EWindowMode::Fullscreen",
-        "VSyncEnabled?": false,
+        "Resolution": "$resolution",
+        "WindowMode": "$ueWindowMode",
+        "VSyncEnabled?": "$vsync",
         "FrameRateLimit": "$fpsCap",
         "TextureQuality": "$ue.Texture",
         "ShadowQuality": "$ue.Shadow",
@@ -26,7 +29,9 @@
         "EffectsQuality": "$ue.Effects",
         "ReflectionsQuality": "$ue.Reflection",
         "MotionBlurQuality": 0
-      }
+      },
+      "categories": { "MotionBlurQuality": "quality" },
+      "labels": { "VSyncEnabled?": "VSync", "WindowMode": "Display mode" }
     }
   ]
 }

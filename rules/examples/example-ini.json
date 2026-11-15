@@ -1,0 +1,28 @@
+{
+  // EXAMPLE ONLY: a made-up game. Files in rules/examples are not loaded by the app.
+  // Shows an ini file, per-step values, display variables and categories.
+  "id": "example-ini-game",
+  "name": "Example Game (ini)",
+  "match": { "installDirs": ["Example Game"] },
+  "fpsUncappedValue": 0,
+  "author": "example",
+  "source": "illustration of the rule format; not a real game",
+  "files": [
+    {
+      "format": "ini",
+      "path": "%DOCUMENTS%/My Games/Example Game/settings.ini",
+      "set": {
+        "Display/Width": "$width",
+        "Display/Height": "$height",
+        "Display/Mode": "$displayMode",
+        "Display/VSync": "$vsync",
+        "Display/MaxFps": "$fpsCap",
+        "Graphics/Shadows": [0, 1, 1, 2, 3, 3],
+        "Graphics/Textures": "$ue.Texture",
+        "Graphics/RenderScale": 100
+      },
+      "categories": { "Graphics/RenderScale": "renderScale" },
+      "labels": { "Graphics/Shadows": "Shadow quality" }
+    }
+  ]
+}

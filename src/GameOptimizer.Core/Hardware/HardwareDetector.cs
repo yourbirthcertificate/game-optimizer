@@ -13,7 +13,7 @@ public static partial class HardwareDetector
         var hw = new HardwareInfo();
         TryWmi(hw);
         TryVram(hw);
-        (hw.NativeWidth, hw.NativeHeight, hw.MaxRefreshHz) = Display.Native();
+        hw.Displays = DisplayDetector.Detect();
         Classify(hw);
         return hw;
     }
@@ -147,39 +147,4 @@ public static partial class HardwareDetector
     [GeneratedRegex(@"gtx\s*(\d{2})\d0")] private static partial Regex GtxRegex();
     [GeneratedRegex(@"rx\s*(\d)(\d)\d0\s*(xtx|xt|gre)?")] private static partial Regex RxRegex();
     [GeneratedRegex(@"a7\d0|b5\d0|b7\d0")] private static partial Regex ArcHighRegex();
-}
-
-/// <summary>Primary display: native resolution and the best refresh rate at that resolution.</summary>
-internal static class Display
-{
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    struct DEVMODE
-    {
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
-        public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
-        public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
-        public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
-        public short dmLogPixels;
-        public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency;
-        public int dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
-    }
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    static extern bool EnumDisplaySettings(string? device, int mode, ref DEVMODE dm);
-
-    public static (int w, int h, int hz) Native()
-    {
-        var modes = new List<(int w, int h, int hz)>();
-        for (int i = 0; ; i++)
-        {
-            var dm = new DEVMODE { dmSize = (short)Marshal.SizeOf<DEVMODE>() };
-            if (!EnumDisplaySettings(null, i, ref dm)) break;
-            modes.Add((dm.dmPelsWidth, dm.dmPelsHeight, dm.dmDisplayFrequency));
-        }
-        if (modes.Count == 0) return (1920, 1080, 60);
-        var native = modes.MaxBy(m => (long)m.w * m.h);
-        int hz = modes.Where(m => m.w == native.w && m.h == native.h).Max(m => m.hz);
-        return (native.w, native.h, hz);
-    }
 }

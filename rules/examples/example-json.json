@@ -1,0 +1,18 @@
+{
+  // EXAMPLE ONLY: a made-up game with a JSON settings file. Keys are dotted paths.
+  "id": "example-json-game",
+  "name": "Example Game (json)",
+  "match": { "gogIds": ["1000000000"] },
+  "source": "illustration of the rule format; not a real game",
+  "files": [
+    {
+      "format": "json",
+      "path": "%APPDATA%/ExampleGame/config.json",
+      "set": {
+        "video.vsync": "$vsync",
+        "video.frameLimit": "$fpsCap",
+        "graphics.quality": "$step"
+      }
+    }
+  ]
+}

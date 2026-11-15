@@ -13,8 +13,19 @@
         <SolidColorBrush x:Key="Warn" Color="#E0B04A"/>
         <SolidColorBrush x:Key="Custom" Color="#7DA7F0"/>
 
-        <Style TargetType="TextBlock">
+        <!-- Text colour is inherited from each window (Foreground), not forced on every TextBlock,
+             so controls with light backgrounds (combo boxes, text boxes) keep dark text. -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="Padding" Value="6,3"/>
+        </Style>
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="{StaticResource PanelHi}"/>
             <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground" Value="Black"/>
         </Style>
 
         <Style TargetType="Button">
@@ -57,6 +68,9 @@
         </Style>
 
         <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+        </Style>
+        <Style TargetType="RadioButton">
             <Setter Property="Foreground" Value="{StaticResource Text}"/>
         </Style>
 

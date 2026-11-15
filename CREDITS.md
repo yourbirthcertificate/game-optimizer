@@ -34,7 +34,11 @@ noncommercial use only. See [NOTICE](NOTICE) for the short version and
 
 - **Launcher records.** Installed games are found from the files that Steam
   (`libraryfolders.vdf`, `appmanifest_*.acf`) and the Epic Games Launcher (`*.item`
-  manifests) write on this PC. Nothing is read from those companies' services.
+  manifests) write, and the registry entries GOG writes, on this PC. Nothing is read from
+  those companies' services.
+- **Frame-time captures.** The benchmark import reads the CSV layout of
+  [PresentMon](https://github.com/GameTechDev/PresentMon) (MIT License), which CapFrameX and
+  other tools also write. No PresentMon code is included.
 - **Game settings.** The tool reads and writes only the settings files and registry values
   each game already created on this PC.
 

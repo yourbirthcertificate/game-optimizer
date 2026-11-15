@@ -1,0 +1,16 @@
+{
+ "Format": "ini",
+ "Target": "{install}/settings.ini",
+ "Taken": "2026-11-15T12:00:00",
+ "Values": {
+  "Video/Shadows": {
+   "Type": "int",
+   "Display": "1"
+  },
+  "Video/VSync": {
+   "Type": "bool",
+   "Display": "True"
+  }
+ },
+ "Unreadable": []
+}

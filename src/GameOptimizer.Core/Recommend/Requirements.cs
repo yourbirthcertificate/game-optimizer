@@ -9,7 +9,11 @@ using System.Text.RegularExpressions;
 namespace GameOptimizer.Core.Recommend;
 
 /// <summary>What a game's publisher lists, reduced to what the recommendation needs.</summary>
-public sealed record GameRequirements(string Source, string? RecommendedGpu, string? MinimumGpu, int? ReleaseYear);
+public sealed record GameRequirements(string Source, string? RecommendedGpu, string? MinimumGpu, int? ReleaseYear)
+{
+    /// <summary>When the answer was fetched (cache file time); null when unknown.</summary>
+    public DateTime? FetchedUtc { get; init; }
+}
 
 /// <summary>
 /// Reads published system requirements from Steam's store API and PCGamingWiki. Only Steam app ids
@@ -48,27 +52,27 @@ public static partial class RequirementSource
     {
         int? year = null;
         string? rec = null, min = null;
-        var steam = await CachedAsync($"steamgame2:{appId}", GameTtl, () => FetchSteamAsync(appId, ct), ct);
+        var (steam, steamAt) = await CachedAsync($"steamgame2:{appId}", GameTtl, () => FetchSteamAsync(appId, ct), ct);
         if (steam is not null && steam["missing"] is null)
         {
             year = Year(steam["release"]?.GetValue<string>());
             var pc = steam["pc"] as JsonObject;
             rec = SteamGpu(pc?["recommended"]?.GetValue<string>());
             min = SteamGpu(pc?["minimum"]?.GetValue<string>());
-            if (rec is not null) return new("Steam", rec, min, year);
+            if (rec is not null) return new("Steam", rec, min, year) { FetchedUtc = steamAt };
         }
-        var title = (await CachedAsync($"pcgwappid:{appId}", MapTtl, () => FetchPcgwTitleAsync(appId, ct), ct))?["title"]?.GetValue<string>();
+        var title = (await CachedAsync($"pcgwappid:{appId}", MapTtl, () => FetchPcgwTitleAsync(appId, ct), ct)).node?["title"]?.GetValue<string>();
         if (title is not null)
         {
-            var page = await CachedAsync($"pcgwgame3:{title.ToLowerInvariant()}", GameTtl, () => FetchPcgwPageAsync(title, ct), ct);
+            var (page, pageAt) = await CachedAsync($"pcgwgame3:{title.ToLowerInvariant()}", GameTtl, () => FetchPcgwPageAsync(title, ct), ct);
             var text = page?["wikitext"]?.GetValue<string>();
             if (text is not null)
             {
                 var (r, m) = PcgwGpu(text);
-                if (r is not null || m is not null) return new("PCGamingWiki", r, m ?? min, year);
+                if (r is not null || m is not null) return new("PCGamingWiki", r, m ?? min, year) { FetchedUtc = pageAt };
             }
         }
-        return min is not null || year is not null ? new("Steam", null, min, year) : null;
+        return min is not null || year is not null ? new("Steam", null, min, year) { FetchedUtc = steamAt } : null;
     }
 
     // ------------------------------------------------------------------ cache
@@ -76,7 +80,7 @@ public static partial class RequirementSource
     static string CacheName(string key) =>
         Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(key)))[..20].ToLowerInvariant() + ".json";
 
-    static async Task<JsonNode?> CachedAsync(string key, TimeSpan ttl, Func<Task<JsonNode?>> fetch, CancellationToken ct)
+    static async Task<(JsonNode? node, DateTime? at)> CachedAsync(string key, TimeSpan ttl, Func<Task<JsonNode?>> fetch, CancellationToken ct)
     {
         var name = CacheName(key);
         foreach (var dir in SharedCacheDirs.Prepend(CacheDir))
@@ -85,16 +89,16 @@ public static partial class RequirementSource
             try
             {
                 if (File.Exists(path) && DateTime.UtcNow - File.GetLastWriteTimeUtc(path) < ttl)
-                    return JsonNode.Parse(await File.ReadAllTextAsync(path, ct));
+                    return (JsonNode.Parse(await File.ReadAllTextAsync(path, ct)), File.GetLastWriteTimeUtc(path));
             }
             catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { }
         }
-        if (!AllowNetwork) return null;
+        if (!AllowNetwork) return (null, null);
         JsonNode? value;
         try { value = await fetch(); }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException && !ct.IsCancellationRequested)
-        { return null; } // offline or the source is down: fall back, do not cache
-        if (value is null) return null;
+        { return (null, null); } // offline or the source is down: fall back, do not cache
+        if (value is null) return (null, null);
         try
         {
             Directory.CreateDirectory(CacheDir);
@@ -103,7 +107,7 @@ public static partial class RequirementSource
             File.Move(tmp, Path.Combine(CacheDir, name), true);
         }
         catch (IOException) { }
-        return value;
+        return (value, DateTime.UtcNow);
     }
 
     // ------------------------------------------------------------------ fetching

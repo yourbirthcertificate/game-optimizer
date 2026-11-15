@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/yourbirthcertificate/game-optimizer/rules/rule.schema.json",
+  "title": "GameOptimizer game rule",
+  "description": "One game's settings knowledge. 'gameopt rule validate FILE' runs the same checks and more (known variables, duplicate keys).",
+  "type": "object",
+  "required": ["id", "match", "files"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Unique id; lowercase letters, digits and dashes." },
+    "name": { "type": "string" },
+    "notes": { "type": "string" },
+    "gameVersion": { "type": "string", "description": "Game version or build the rule was checked against." },
+    "source": { "type": "string", "description": "Where the knowledge came from." },
+    "author": { "type": "string" },
+    "verified": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "Date the rule was last checked against the game." },
+    "replaceEngineHandler": { "type": "boolean", "default": false },
+    "unrealConfigName": { "type": "string", "description": "Unreal: config folder under %LOCALAPPDATA% when it differs from the project folder." },
+    "fpsUncappedValue": { "type": "number", "description": "What the game writes for 'no frame cap'. Without it, 'uncapped' leaves the cap alone." },
+    "match": {
+      "type": "object",
+      "properties": {
+        "steamAppIds": { "type": "array", "items": { "type": "string", "pattern": "^[0-9]+$" } },
+        "epicAppNames": { "type": "array", "items": { "type": "string" } },
+        "gogIds": { "type": "array", "items": { "type": "string" } },
+        "installDirs": { "type": "array", "items": { "type": "string" } }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["format", "path", "set"],
+        "properties": {
+          "format": { "enum": ["gvas", "ini", "json", "kv", "registry"] },
+          "path": { "type": "string", "description": "File path with %ENVVARS%, %DOCUMENTS%, %SAVEDGAMES% or {install}; for registry, HKCU/Software/..." },
+          "steamCloud": { "type": "boolean" },
+          "set": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": { "$ref": "#/$defs/value" }
+          },
+          "categories": {
+            "type": "object",
+            "additionalProperties": { "enum": ["resolution", "displayMode", "vsync", "fpsCap", "renderScale", "texture", "quality", "other"] }
+          },
+          "labels": { "type": "object", "additionalProperties": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "scalar": {
+      "oneOf": [
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "string", "description": "Literal text, or a $variable such as $fpsCap, $resolution, $vsync, $ueWindowMode, $ue.Shadow." },
+        { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2, "description": "[width, height]" }
+      ]
+    },
+    "value": {
+      "oneOf": [
+        { "$ref": "#/$defs/scalar" },
+        { "type": "array", "items": { "$ref": "#/$defs/scalar" }, "minItems": 6, "maxItems": 6, "description": "One value per slider step, Low to Ultra." }
+      ]
+    }
+  }
+}

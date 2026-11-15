@@ -13,6 +13,11 @@ public sealed class GameInfo
     public GameEngine Engine { get; set; } = GameEngine.Unknown;
     /// <summary>Engine-specific detail: Unreal project name, Unity "Company\Product", Source mod folder.</summary>
     public string? EngineDetail { get; set; }
+    /// <summary>Every launcher or list that reported this install folder ("Steam", "GOG", "Added by you").</summary>
+    public List<string> Sources { get; set; } = new();
+    public string? GogId { get; init; }
+
+    public string SourcesText => Sources.Count > 0 ? string.Join(", ", Sources) : Store;
 
     public override string ToString() => $"{Name} [{Store}] ({Engine})";
 }

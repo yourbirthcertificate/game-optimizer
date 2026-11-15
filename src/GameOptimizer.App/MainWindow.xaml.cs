@@ -1,15 +1,15 @@
-using System.IO;
-﻿using System.ComponentModel;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using GameOptimizer.Core.Hardware;
-using GameOptimizer.Core.Library;
 using GameOptimizer.Core.Optimize;
-using GameOptimizer.Core.Recommend;
 using GameOptimizer.Core.Safety;
 
 namespace GameOptimizer.App;
@@ -26,6 +26,7 @@ public partial class MainWindow : Window
     readonly DispatcherTimer _replanTimer;
     ICollectionView? _view;
     int _planVersion;
+    OptimizerSession? S => _vm.Session;
 
     public MainWindow()
     {
@@ -34,66 +35,87 @@ public partial class MainWindow : Window
         _replanTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _replanTimer.Tick += async (_, _) => { _replanTimer.Stop(); await ReplanAllAsync(); };
         _vm.GlobalChanged += () => { _replanTimer.Stop(); _replanTimer.Start(); };
-        _vm.RowChanged += async row => await ReplanRowsAsync(new[] { row });
+        _vm.RowChangedEvent += async row => await ReplanRowsAsync(new[] { row });
+        _vm.FilterChanged += RefreshView;
+        _vm.RecommendationNeededEvent += async row => await RecommendAsync(new[] { row });
         GlobalSlider.SizeChanged += (_, _) => LayoutTicks();
         Loaded += async (_, _) => await LoadAsync();
+        InputBindings.Add(new KeyBinding(new Relay(async () => await LoadAsync()), Key.F5, ModifierKeys.None));
+        // Display changes (a monitor plugged in, a new refresh rate) refresh what the app shows. Nothing is changed in Windows.
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnDisplaysChanged;
+        Closed += (_, _) => Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplaysChanged;
     }
+
+    sealed class Relay(Func<Task> run) : ICommand
+    {
+        public event EventHandler? CanExecuteChanged { add { } remove { } }
+        public bool CanExecute(object? p) => true;
+        public async void Execute(object? p) => await run();
+    }
+
+    void OnDisplaysChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(async () =>
+    {
+        if (S is null) return;
+        S.RefreshDisplays();
+        _vm.RebuildChoices();
+        foreach (var r in _vm.Games) r.SyncStep();
+        _vm.Status = "Display settings changed; active modes and automatic caps updated.";
+        await ReplanAllAsync();
+    });
 
     async Task LoadAsync()
     {
         _vm.Busy = true;
         _vm.Status = "Reading hardware and scanning games...";
-        var errors = new List<string>();
-        var (hw, scan, rules) = await Task.Run(() => (HardwareDetector.Detect(), LibraryScanner.Scan(), RuleSet.Load(errors)));
-        _vm.Load(hw, scan, rules);
+        var session = await Task.Run(() => OptimizerSession.Load());
+        _vm.Load(session);
         _view = CollectionViewSource.GetDefaultView(_vm.Games);
-        _view.Filter = o => !_vm.OnlySupported || o is GameRow { Plan: null } || ((GameRow)o).IsSupported;
+        _view.Filter = o => o is GameRow r && _vm.Matches(r);
         LayoutTicks();
         await ReplanAllAsync();
-        var notes = scan.Notes.Concat(errors).ToList();
         _vm.Busy = false;
-
-        // Per-game recommendations come from published requirements (cached for a week), so they
-        // arrive after the list is shown. Only games the tool can change are looked up.
-        var supported = _vm.Games.Where(r => r.IsSupported).Select(r => r.Game).ToList();
-        var progress = new Progress<(int done, int total)>(p => _vm.Status = $"Reading published requirements {p.done}/{p.total}...");
-        var recs = await Task.Run(() => Recommender.RecommendAllAsync(hw, supported, progress));
-        _vm.SetRecommendations(recs);
-        await ReplanAllAsync();
-        if (notes.Count > 0) _vm.Status += "  " + string.Join("  ", notes);
+        var supported = _vm.Games.Where(r => r.IsSupported).ToList();
+        await RecommendAsync(supported);
+        if (session.Notes.Count > 0) _vm.Status += "  " + string.Join("  ", session.Notes);
     }
 
-    /// <summary>Plans are only reads, so they run off the UI thread. Older results are dropped.</summary>
+    async Task RecommendAsync(IReadOnlyList<GameRow> rows)
+    {
+        if (S is null || rows.Count == 0) return;
+        var games = rows.Select(r => r.Game).ToList();
+        var progress = new Progress<(int done, int total)>(p => _vm.Status = $"Reading published requirements {p.done}/{p.total}...");
+        var session = S;
+        await Task.Run(() => session.LoadRecommendationsAsync(games, progress));
+        foreach (var r in rows) if (session.Recs.TryGetValue(r.Game.Id, out var rec)) r.SetRecommendation(rec);
+        await ReplanRowsAsync(rows);
+    }
+
     Task ReplanAllAsync() => ReplanRowsAsync(_vm.Games.ToList(), all: true);
 
     async Task ReplanRowsAsync(IReadOnlyList<GameRow> rows, bool all = false)
     {
-        if (_vm.Hardware is not { } hw) return;
+        if (S is null) return;
         int version = all ? ++_planVersion : _planVersion;
-        var jobs = rows.Select(r => (row: r, step: (QualityStep)r.Step)).ToList();
-        var rules = _vm.Rules;
-        var results = await Task.Run(() =>
+        var games = rows.Select(r => r.Game).ToList();
+        var session = S;
+        var plans = await Task.Run(() =>
         {
             var images = ProcessGuard.RunningImages();
-            return jobs.Select(j =>
-            {
-                GamePlan plan;
-                try { plan = Planner.Plan(j.row.Game, hw, j.step, rules); }
-                catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-                {
-                    plan = new GamePlan { Game = j.row.Game, Step = j.step, Status = PlanStatus.Skipped };
-                    plan.Skipped.Add("Could not read settings: " + e.Message);
-                }
-                if (plan.HasChanges && ProcessGuard.RunningFrom(j.row.Game.InstallDir, images) is not null) plan.Status = PlanStatus.Running;
-                return (j.row, j.step, plan);
-            }).ToList();
+            return games.Select(g => session.PlanFor(g, runningImages: images)).ToList();
         });
         if (version != _planVersion) return;
-        foreach (var (row, step, plan) in results)
-            if (row.Step == (int)step) row.Plan = plan;
-        _view?.Refresh();
+        for (int i = 0; i < rows.Count; i++) rows[i].Plan = plans[i];
+        _vm.CountsChanged();
+        RefreshView();
         int ready = _vm.Games.Count(g => g.CanOptimize);
-        if (!_vm.Busy) _vm.Status = ready == 0 ? "Every supported game is already set for its slider step." : $"{ready} game(s) can be optimized.";
+        if (!_vm.Busy) _vm.Status = ready == 0 ? "Every supported game is already set for its choices." : $"{ready} game(s) have changes waiting.";
+    }
+
+    void RefreshView()
+    {
+        _view?.Refresh();
+        int shown = _view?.Cast<object>().Count() ?? 0;
+        ShownText.Text = $"Showing {shown} of {_vm.Games.Count}";
     }
 
     static readonly string[] OffsetTicks = { "Fastest", "-2", "-1", "Recommended", "+1", "+2", "Best looking" };
@@ -109,9 +131,7 @@ public partial class MainWindow : Window
             bool mid = i == 3;
             var tb = new TextBlock
             {
-                Text = OffsetTicks[i],
-                TextAlignment = TextAlignment.Center,
-                FontSize = 12,
+                Text = OffsetTicks[i], FontSize = 12,
                 Foreground = mid ? (Brush)FindResource("Accent") : (Brush)FindResource("Muted"),
                 FontWeight = mid ? FontWeights.SemiBold : FontWeights.Normal,
             };
@@ -122,62 +142,101 @@ public partial class MainWindow : Window
         }
     }
 
-    void UseRecommended_Click(object sender, RoutedEventArgs e) => _vm.GlobalOffset = 0;
+    static GameRow? RowOf(object sender) => (sender as FrameworkElement)?.Tag as GameRow;
 
-    void ResetRow_Click(object sender, RoutedEventArgs e)
+    void UseRecommended_Click(object sender, RoutedEventArgs e) => _vm.GlobalOffset = 0;
+    void ResetRow_Click(object sender, RoutedEventArgs e) => RowOf(sender)?.ResetStep();
+    void ClearKept_Click(object sender, RoutedEventArgs e) => RowOf(sender)?.ClearExclusions();
+    void ResetChoices_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.Tag is GameRow row) _vm.ResetRow(row);
+        if (RowOf(sender) is { } r && Ui.Confirm(this, $"Remove every choice made for {r.Name} (step, profile, frame cap, display, kept settings, linked app id)?", "Reset choices"))
+            r.ResetAllChoices();
     }
 
-    void Filter_Changed(object sender, RoutedEventArgs e) => _view?.Refresh();
+    void SelectShown_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var r in _view?.Cast<GameRow>().ToList() ?? new List<GameRow>()) r.IsSelected = true;
+    }
+    void ClearSelection_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var r in _vm.Games) r.IsSelected = false;
+    }
 
-    /// <summary>Opens a game's PCGamingWiki page or Steam guides in the default browser.</summary>
     void Link_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.Tag is not string url || !url.StartsWith("https://", StringComparison.Ordinal)) return;
-        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
-        catch (System.ComponentModel.Win32Exception ex) { MessageBox.Show(this, "Could not open the browser: " + ex.Message, "Link"); }
+        if ((sender as FrameworkElement)?.Tag is string url && url.StartsWith("https://", StringComparison.Ordinal)) Open(url);
     }
 
-    async void Rescan_Click(object sender, RoutedEventArgs e) => await LoadAsync();
+    void Open(string target)
+    {
+        try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException) { Ui.Info(this, "Could not open it: " + ex.Message); }
+    }
+
+    void OpenFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (RowOf(sender)?.Plan?.SettingsFolder is { } f && Directory.Exists(f)) Open(f);
+    }
+
+    async void AddRule_Click(object sender, RoutedEventArgs e)
+    {
+        if (RowOf(sender) is not { } r || S is null) return;
+        var dlg = new RuleWizardWindow(S, r.Game, this);
+        dlg.ShowDialog();
+        if (dlg.Saved) await LoadAsync();
+    }
+
+    void Launch_Click(object sender, RoutedEventArgs e)
+    {
+        if (RowOf(sender) is not { Game.SteamAppId: { } id } r) return;
+        Open($"steam://rungameid/{id}");
+        Ui.Info(this, $"Steam is starting {r.Name}. Let it reach the main menu, close it, then press F5 (Library > Rescan).", "Launch once");
+    }
+
+    // ------------------------------------------------------------------ previews and applying
 
     async void PreviewRow_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.Tag is not GameRow row) return;
-        await ReplanRowsAsync(new[] { row });
-        if (row.Plan is { } plan) await ShowPreviewAndMaybeApply(new[] { plan });
+        if (RowOf(sender) is { } r) await PreviewAndMaybeApply(new[] { r }, r.Name);
     }
 
     async void ApplyRow_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.Tag is not GameRow row) return;
-        await ReplanRowsAsync(new[] { row });
-        if (row.Plan is { Status: PlanStatus.Ready } plan) await ApplyAsync(new[] { plan }, $"{row.Name}: {plan.Step.Label()}");
-        else MessageBox.Show(this, row.StatusText, row.Name);
+        if (RowOf(sender) is not { } r || S is null) return;
+        await ReplanRowsAsync(new[] { r });
+        if (r.Plan is { Status: PlanStatus.Ready } plan) await ApplyAsync(new[] { plan }, $"{r.Name}: {plan.Step.Label()}");
+        else Ui.Info(this, r.StatusText, r.Name);
+    }
+
+    async void PreviewSelected_Click(object sender, RoutedEventArgs e) => await SelectedAction();
+    async void ApplySelected_Click(object sender, RoutedEventArgs e) => await SelectedAction();
+
+    async Task SelectedAction()
+    {
+        var rows = _vm.Games.Where(g => g.IsSelected).ToList();
+        if (rows.Count == 0) { Ui.Info(this, "Tick the games you want first (the box at the left of each row, or Select shown)."); return; }
+        await PreviewAndMaybeApply(rows, $"{rows.Count} selected game(s)");
     }
 
     async void OptimizeAll_Click(object sender, RoutedEventArgs e)
     {
-        _vm.Busy = true;
-        _vm.Status = "Checking every game...";
-        await ReplanAllAsync();
-        _vm.Busy = false;
-        var plans = _vm.Games.Select(g => g.Plan).OfType<GamePlan>()
-            .Where(p => p.Status is PlanStatus.Ready or PlanStatus.Running).ToList();
-        if (plans.Count == 0)
-        {
-            MessageBox.Show(this, "Every supported game is already set for its slider step.", "Nothing to change");
-            return;
-        }
-        await ShowPreviewAndMaybeApply(plans);
+        var rows = _vm.Games.Where(g => g.IsSupported).ToList();
+        await PreviewAndMaybeApply(rows, $"all {rows.Count} supported games");
     }
 
-    async Task ShowPreviewAndMaybeApply(IReadOnlyList<GamePlan> plans)
+    async Task PreviewAndMaybeApply(IReadOnlyList<GameRow> rows, string scope)
     {
-        var dlg = new PreviewWindow(plans) { Owner = this };
-        if (dlg.ShowDialog() == true)
-            await ApplyAsync(plans.Where(p => p.Status == PlanStatus.Ready).ToList(),
-                             plans.Count == 1 ? $"{plans[0].Game.Name}: {plans[0].Step.Label()}" : $"Optimize all ({plans.Count} games)");
+        if (S is null) return;
+        _vm.Busy = true;
+        _vm.Status = "Checking " + scope + "...";
+        await ReplanRowsAsync(rows);
+        _vm.Busy = false;
+        var plans = rows.Select(r => r.Plan).OfType<GamePlan>().Where(p => p.Status != PlanStatus.Skipped).ToList();
+        if (plans.Count == 0) { Ui.Info(this, $"Nothing in {scope} can be changed.", "Preview"); return; }
+        var dlg = new PreviewWindow(S, plans, scope, this);
+        if (dlg.ShowDialog() == true && dlg.FinalPlans.Count > 0)
+            await ApplyAsync(dlg.FinalPlans, plans.Count == 1 ? $"{plans[0].Game.Name}: {plans[0].Step.Label()}" : $"Optimize {scope}");
+        await ReplanRowsAsync(rows);
     }
 
     async Task ApplyAsync(IReadOnlyList<GamePlan> plans, string summary)
@@ -191,25 +250,87 @@ public partial class MainWindow : Window
         lines.AddRange(res.Applied.Select(a => "Done: " + a));
         lines.AddRange(res.Refused.Select(r => "Not changed: " + r));
         lines.AddRange(res.Errors.Select(x => "Problem: " + x));
-        if (res.RunId is not null) lines.Add($"\nBackups are in run {res.RunId}. \"Restore last run\" puts everything back.");
-        MessageBox.Show(this, string.Join("\n", lines), "Optimize", MessageBoxButton.OK,
-                        res.Errors.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+        if (res.RunId is not null) lines.Add($"\nBackups are in run {res.RunId}. Tools > History and restore can undo it.");
+        MessageBox.Show(this, string.Join("\n", lines), "Optimize", MessageBoxButton.OK, res.Errors.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
         await ReplanAllAsync();
     }
 
-    async void Restore_Click(object sender, RoutedEventArgs e)
+    // ------------------------------------------------------------------ menus
+
+    async void Rescan_Click(object sender, RoutedEventArgs e) => await LoadAsync();
+
+    async void AddFolder_Click(object sender, RoutedEventArgs e)
     {
-        var run = Applier.Runs().FirstOrDefault();
-        if (run is null) { MessageBox.Show(this, "There are no backups yet.", "Restore"); return; }
-        var games = string.Join(", ", run.Entries.Select(x => x.GameName).Distinct());
-        var ok = MessageBox.Show(this, $"Put back the settings from before the run on {run.Created:g}?\n\n{run.Summary}\nGames: {games}",
-                                 "Restore last run", MessageBoxButton.OKCancel, MessageBoxImage.Question);
-        if (ok != MessageBoxResult.OK) return;
-        var res = await Task.Run(() => Applier.Restore(run));
-        var lines = res.Applied.Select(a => "Restored: " + a)
-            .Concat(res.Refused.Select(r => "Not restored: " + r))
-            .Concat(res.Errors.Select(x => "Note: " + x));
-        MessageBox.Show(this, string.Join("\n", lines), "Restore");
+        if (S is null) return;
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "Choose a game's install folder" };
+        if (dlg.ShowDialog(this) != true) return;
+        var path = dlg.FolderName;
+        if (S.Prefs.ManualGames.Any(m => Core.Library.LibraryScanner.NormalizeDir(m.Path) == Core.Library.LibraryScanner.NormalizeDir(path)))
+        { Ui.Info(this, "That folder is already in the list."); return; }
+        S.Prefs.ManualGames.Add(new ManualGame { Path = path });
+        S.Prefs.Save();
+        await LoadAsync();
+    }
+
+    async void ManageFolders_Click(object sender, RoutedEventArgs e)
+    {
+        if (S is null) return;
+        if (new FoldersWindow(S.Prefs, this).ShowDialog() == true) await LoadAsync();
+    }
+
+    async void History_Click(object sender, RoutedEventArgs e)
+    {
+        new HistoryWindow(this).ShowDialog();
         await ReplanAllAsync();
+    }
+
+    async void Benchmarks_Click(object sender, RoutedEventArgs e)
+    {
+        if (S is null) return;
+        new BenchmarksWindow(S, this).ShowDialog();
+        await RecommendAsync(_vm.Games.Where(r => r.IsSupported).ToList());
+    }
+
+    async void Wizard_Click(object sender, RoutedEventArgs e)
+    {
+        if (S is null) return;
+        var dlg = new RuleWizardWindow(S, null, this);
+        dlg.ShowDialog();
+        if (dlg.Saved) await LoadAsync();
+    }
+
+    void ValidateRules_Click(object sender, RoutedEventArgs e)
+    {
+        var errors = new List<string>();
+        var rules = RuleSet.Load(errors);
+        var text = $"{rules.Count} rule(s) loaded: {string.Join(", ", rules.Select(r => r.Id))}.\nYour rules folder: {RuleSet.UserRulesDir}";
+        if (errors.Count > 0) text += "\n\nProblems:\n" + string.Join("\n", errors);
+        Ui.Info(this, text, "Rule files");
+    }
+
+    async void Profiles_Click(object sender, RoutedEventArgs e)
+    {
+        if (S is null) return;
+        new ProfilesWindow(S, this).ShowDialog();
+        _vm.RebuildChoices();
+        foreach (var r in _vm.Games) r.SyncStep();
+        await ReplanAllAsync();
+    }
+
+    void Export_Click(object sender, RoutedEventArgs e)
+    {
+        if (S is null) return;
+        var dlg = new Microsoft.Win32.SaveFileDialog { FileName = "gameoptimizer-preferences.json", Filter = "JSON|*.json" };
+        if (dlg.ShowDialog(this) != true) return;
+        File.WriteAllText(dlg.FileName, PrefsTransfer.Export(S.Prefs));
+        Ui.Info(this, "Exported profiles, choices, kept settings and your rules. Game saves, backups and benchmarks are not included.", "Export");
+    }
+
+    async void Import_Click(object sender, RoutedEventArgs e)
+    {
+        if (S is null) return;
+        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "JSON|*.json" };
+        if (dlg.ShowDialog(this) != true) return;
+        if (new ImportWindow(S, File.ReadAllText(dlg.FileName), this).ShowDialog() == true) await LoadAsync();
     }
 }

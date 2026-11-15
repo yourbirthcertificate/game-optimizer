@@ -1,0 +1,19 @@
+{
+  // EXAMPLE ONLY: a made-up Unity game that keeps a custom quality value in its PlayerPrefs.
+  // Unity value names end in _h followed by a hash; copy them from 'gameopt rule snapshot'.
+  "id": "example-registry-game",
+  "name": "Example Game (registry)",
+  "match": { "steamAppIds": ["1"] },
+  "source": "illustration of the rule format; not a real game",
+  "files": [
+    {
+      "format": "registry",
+      "path": "HKCU/Software/Example Studio/Example Game",
+      "set": {
+        "Graphics_Quality_h1234567890": [0, 1, 2, 3, 4, 5],
+        "Shadows_Enabled_h987654321": [0, 1, 1, 1, 1, 1]
+      },
+      "categories": { "Graphics_Quality_h1234567890": "quality" }
+    }
+  ]
+}

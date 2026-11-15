@@ -48,21 +48,65 @@ public static class Profiles
         return (cpu, gpu, mem);
     }
 
-    /// <summary>Variables rule files can refer to as "$name".</summary>
-    public static Dictionary<string, object> Variables(QualityStep step, HardwareInfo hw)
+    public static readonly string[] KnownVariables =
     {
+        "step", "fpsCap", "refreshHz", "activeRefreshHz", "nativeWidth", "nativeHeight", "nativeResolution",
+        "resolution", "width", "height", "vsync", "displayMode", "ueWindowMode", "textureCap",
+        "ue.ViewDistance", "ue.AntiAliasing", "ue.Shadow", "ue.GlobalIllumination", "ue.Reflection", "ue.PostProcess",
+        "ue.Texture", "ue.Effects", "ue.Foliage", "ue.Shading", "ue.Landscape",
+    };
+
+    /// <summary>Variables at a step with the default (Balanced) preferences.</summary>
+    public static Dictionary<string, object> Variables(QualityStep step, HardwareInfo hw) =>
+        Variables(OptimizeRequest.Default(hw, step), hw, null);
+
+    /// <summary>
+    /// Variables rule files can refer to as "$name". Display and frame-rate variables follow the user's
+    /// preferences: when a preference is "keep", the variable is a Keep marker and the key is left alone.
+    /// $nativeResolution/$nativeWidth/$nativeHeight are kept as aliases of the chosen resolution.
+    /// </summary>
+    public static Dictionary<string, object> Variables(OptimizeRequest req, HardwareInfo hw, GameRule? rule)
+    {
+        object fps = req.FpsMode switch
+        {
+            FpsMode.Keep => new Keep("frame-rate cap set to keep"),
+            FpsMode.Uncapped when rule?.FpsUncappedValue is { } u => u.TryGetInt32(out var ui) ? ui : u.GetDouble(),
+            FpsMode.Uncapped => new Keep("this rule does not say how the game writes 'no cap', so the cap is left alone"),
+            _ => req.FpsCap is { } c && c == Math.Floor(c) ? (int)c : (object)req.FpsCap!.Value,
+        };
+        object res = req.Resolution is var (w, h) ? new[] { w, h } : new Keep("resolution set to keep");
+        object resW = req.Resolution is var (w2, _) ? w2 : new Keep("resolution set to keep");
+        object resH = req.Resolution is var (_, h2) ? h2 : new Keep("resolution set to keep");
+        object vsync = req.VSync switch { VSyncChoice.On => true, VSyncChoice.Off => false, _ => new Keep("VSync set to keep") };
+        object mode = req.DisplayMode switch
+        {
+            DisplayModeChoice.Keep => new Keep("display mode set to keep"),
+            DisplayModeChoice.Borderless => "borderless",
+            DisplayModeChoice.Windowed => "windowed",
+            _ => "fullscreen",
+        };
+        object ueMode = req.DisplayMode switch
+        {
+            DisplayModeChoice.Keep => new Keep("display mode set to keep"),
+            DisplayModeChoice.Borderless => "EWindowMode::WindowedFullscreen",
+            DisplayModeChoice.Windowed => "EWindowMode::Windowed",
+            _ => "EWindowMode::Fullscreen",
+        };
         var v = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
         {
-            ["step"] = (int)step,
-            ["fpsCap"] = hw.FpsCap,
-            ["refreshHz"] = hw.MaxRefreshHz,
-            ["nativeWidth"] = hw.NativeWidth,
-            ["nativeHeight"] = hw.NativeHeight,
-            ["nativeResolution"] = new[] { hw.NativeWidth, hw.NativeHeight },
-            ["vsync"] = false,
+            ["step"] = (int)req.Step,
+            ["fpsCap"] = fps,
+            ["refreshHz"] = req.Display.CurrentHz,
+            ["activeRefreshHz"] = req.Display.CurrentHz,
+            ["nativeWidth"] = resW, ["width"] = resW,
+            ["nativeHeight"] = resH, ["height"] = resH,
+            ["nativeResolution"] = res, ["resolution"] = res,
+            ["vsync"] = vsync,
+            ["displayMode"] = mode,
+            ["ueWindowMode"] = ueMode,
             ["textureCap"] = TextureCap(hw),
         };
-        foreach (var (k, val) in Unreal(step, hw)) v["ue." + k] = val;
+        foreach (var (k, val) in Unreal(req.Step, hw)) v["ue." + k] = val;
         return v;
     }
 }

@@ -113,7 +113,7 @@ public class RecommenderTests
     public void Hand_set_games_ignore_the_offset()
     {
         var p = new Prefs { GlobalOffset = -2 };
-        p.PerGame["steam:1"] = QualityStep.Ultra;
+        p.Game("steam:1").Step = QualityStep.Ultra;
         Assert.Equal(QualityStep.Ultra, p.StepFor("steam:1", QualityStep.Low));
         Assert.Equal(QualityStep.Balanced, p.StepFor("steam:2", QualityStep.VeryHigh));
     }

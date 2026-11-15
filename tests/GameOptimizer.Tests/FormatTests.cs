@@ -93,7 +93,7 @@ public class StepAndRuleTests
     [Fact]
     public void Rule_values_resolve_per_step_and_from_variables()
     {
-        var hw = new HardwareInfo { NativeWidth = 2560, NativeHeight = 1440, MaxRefreshHz = 165, GpuVramGb = 8 };
+        var hw = new HardwareInfo { NativeWidth = 2560, NativeHeight = 1440, ActiveRefreshHz = 165, GpuVramGb = 8 };
         var vars = Profiles.Variables(QualityStep.High, hw);
         using var doc = JsonDocument.Parse("""{"a":[0,1,2,3,4,5],"b":"$fpsCap","c":"$nativeResolution","d":"$ue.Texture","e":"$nope"}""");
         var r = doc.RootElement;

@@ -88,6 +88,31 @@ public sealed class IniDocument
 
     public bool HasSection(string section) => Range(section) is not null;
 
+    /// <summary>Removes a key that appears exactly once (used to undo a key the optimizer added).</summary>
+    public bool Remove(string section, string key)
+    {
+        int i = FindKey(section, key, out int count);
+        if (i < 0 || count != 1) return false;
+        _lines.RemoveAt(i);
+        return true;
+    }
+
+    /// <summary>All key=value pairs as "Section/Key" -> value; keys that appear more than once map to null.</summary>
+    public Dictionary<string, string?> Flatten()
+    {
+        var d = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        string section = "";
+        foreach (var l in _lines)
+        {
+            if (IsSection(l, out var n)) { section = n; continue; }
+            int eq = l.IndexOf('=');
+            if (eq <= 0 || l.TrimStart().StartsWith(';') || l.TrimStart().StartsWith('#')) continue;
+            var k = section + "/" + l[..eq].Trim();
+            d[k] = d.ContainsKey(k) ? null : l[(eq + 1)..].Trim();
+        }
+        return d;
+    }
+
     public string? Get(string section, string key)
     {
         int i = FindKey(section, key, out _);

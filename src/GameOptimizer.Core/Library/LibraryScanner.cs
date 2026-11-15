@@ -18,14 +18,84 @@ public static class LibraryScanner
     static readonly HashSet<string> SteamSkip = new(StringComparer.OrdinalIgnoreCase)
     { "228980", "250820", "1070560", "1391110", "1628350", "1493710", "2180100" };
 
-    public static ScanResult Scan()
+    public static ScanResult Scan(IEnumerable<GameOptimizer.Core.Optimize.ManualGame>? manual = null)
     {
         var r = new ScanResult();
         ScanSteam(r);
         ScanEpic(r);
+        ScanGog(r);
+        if (manual is not null) AddManual(r, manual);
+        var merged = Deduplicate(r.Games);
+        r.Games.Clear();
+        r.Games.AddRange(merged);
         foreach (var g in r.Games) EngineDetector.Detect(g);
         r.Games.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
         return r;
+    }
+
+    public static string NormalizeDir(string dir)
+    {
+        try { return Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).ToLowerInvariant(); }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException) { return dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).ToLowerInvariant(); }
+    }
+
+    static int Priority(string store) => store switch { "Steam" => 0, "Epic" => 1, "GOG" => 2, _ => 3 };
+
+    /// <summary>
+    /// One entry per install folder. When several sources report the same folder, the first by
+    /// Steam, Epic, GOG, manual order keeps its id and name, and the entry lists every source.
+    /// </summary>
+    public static List<GameInfo> Deduplicate(IEnumerable<GameInfo> games)
+    {
+        var result = new List<GameInfo>();
+        foreach (var grp in games.GroupBy(g => NormalizeDir(g.InstallDir)))
+        {
+            var ordered = grp.OrderBy(g => Priority(g.Store)).ToList();
+            var keep = ordered[0];
+            keep.Sources = ordered.Select(g => g.Store == "Manual" ? "Added by you" : g.Store).Distinct().ToList();
+            result.Add(keep);
+        }
+        return result;
+    }
+
+    public static string ManualId(string path) => "manual:" + NormalizeDir(path);
+
+    static void AddManual(ScanResult r, IEnumerable<GameOptimizer.Core.Optimize.ManualGame> manual)
+    {
+        foreach (var m in manual)
+        {
+            if (string.IsNullOrWhiteSpace(m.Path)) continue;
+            if (!Directory.Exists(m.Path)) { r.Notes.Add($"Folder you added is not reachable: {m.Path} (drive not connected?). Skipped."); continue; }
+            r.Games.Add(new GameInfo
+            {
+                Id = ManualId(m.Path), Name = string.IsNullOrWhiteSpace(m.Name) ? Path.GetFileName(m.Path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)) : m.Name!,
+                InstallDir = m.Path, Store = "Manual",
+            });
+        }
+    }
+
+    /// <summary>GOG Galaxy and GOG offline installers register games under HKLM\SOFTWARE\WOW6432Node\GOG.com\Games.</summary>
+    static void ScanGog(ScanResult r)
+    {
+        foreach (var root in new[] { @"SOFTWARE\WOW6432Node\GOG.com\Games", @"SOFTWARE\GOG.com\Games" })
+        {
+            using var games = Registry.LocalMachine.OpenSubKey(root);
+            if (games is null) continue;
+            foreach (var id in games.GetSubKeyNames())
+            {
+                try
+                {
+                    using var k = games.OpenSubKey(id);
+                    var name = k?.GetValue("gameName") as string ?? k?.GetValue("GAMENAME") as string;
+                    var path = k?.GetValue("path") as string ?? k?.GetValue("PATH") as string;
+                    // DLC entries point at their base game's folder and carry a dependsOn value.
+                    if (k?.GetValue("dependsOn") is string dep && dep.Length > 0) continue;
+                    if (name is null || path is null || !Directory.Exists(path)) continue;
+                    r.Games.Add(new GameInfo { Id = "gog:" + id, Name = name, InstallDir = path, Store = "GOG", GogId = id });
+                }
+                catch (Exception e) when (e is System.Security.SecurityException or IOException or UnauthorizedAccessException) { }
+            }
+        }
     }
 
     public static string? SteamRoot()
