@@ -17,6 +17,19 @@ noncommercial use only. See [NOTICE](NOTICE) for the short version and
 - [.NET](https://github.com/dotnet/runtime) and System.Management by Microsoft and the
   .NET Foundation, MIT License.
 
+## Data
+
+- **Graphics card scores.** `data/gpus.json` is exported from
+  [Game Spec Check](https://github.com/yourbirthcertificate/game-spec-check) (same author) by
+  `tools/export_gpus.py`. The scores are hand-maintained approximations on a PassMark-like scale.
+- **Steam store.** Published system requirements and release dates come from Valve's public
+  store API when a game is looked up. Steam is a trademark of Valve Corporation.
+- **PCGamingWiki.** Its system requirement tables are the second source. The wiki's content is
+  available under a Creative Commons Attribution-NonCommercial-ShareAlike license, as stated
+  on its [copyright page](https://www.pcgamingwiki.com/wiki/PCGamingWiki:Copyrights). The app
+  reads these tables when it looks a game up and keeps a local copy in its cache. None of the
+  wiki's content is stored in this repository.
+
 ## Data on this PC
 
 - **Launcher records.** Installed games are found from the files that Steam

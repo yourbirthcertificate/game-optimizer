@@ -37,16 +37,17 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="All games" FontSize="15" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding GlobalLabel}" Foreground="{StaticResource Accent}" Margin="0,2,0,0"/>
+                    <TextBlock Text="{Binding GlobalLabel}" Foreground="{StaticResource Accent}" Margin="0,2,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="10,0,24,0">
-                    <Slider x:Name="GlobalSlider" Value="{Binding GlobalStep, Mode=TwoWay}" IsEnabled="{Binding Busy, Converter={StaticResource InvertBool}}"/>
+                    <Slider x:Name="GlobalSlider" Minimum="-3" Maximum="3" Value="{Binding GlobalOffset, Mode=TwoWay}"
+                            IsEnabled="{Binding Busy, Converter={StaticResource InvertBool}}"/>
                     <Canvas x:Name="GlobalTicks" Height="34" ClipToBounds="False"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                    <Button Content="Use recommended" Click="UseRecommended_Click"/>
+                    <Button Content="Back to recommended" Click="UseRecommended_Click"/>
                 </StackPanel>
-                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding RecommendedText}" Foreground="{StaticResource Muted}"
+                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding HintText}" Foreground="{StaticResource Muted}"
                            Margin="0,6,0,0"/>
             </Grid>
         </Border>
@@ -86,8 +87,22 @@
                                                Visibility="{Binding HasWarning, Converter={StaticResource Vis}}"/>
                                 </StackPanel>
                             </StackPanel>
-                            <Slider Grid.Column="1" Value="{Binding Step, Mode=TwoWay}" VerticalAlignment="Center" Margin="10,0"
-                                    IsEnabled="{Binding IsSupported}"/>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
+                                <Slider Value="{Binding Step, Mode=TwoWay}" IsEnabled="{Binding IsSupported}"/>
+                                <TextBlock Text="{Binding RecText}" ToolTip="{Binding RecReason}" FontSize="11" Margin="0,2,0,0"
+                                           HorizontalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding AtRecommended}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
                                 <TextBlock Text="{Binding StepLabel}" Width="68" VerticalAlignment="Center"/>
                                 <StackPanel Orientation="Horizontal" Visibility="{Binding IsCustom, Converter={StaticResource Vis}}">

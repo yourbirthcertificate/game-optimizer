@@ -9,6 +9,7 @@ using System.Windows.Threading;
 using GameOptimizer.Core.Hardware;
 using GameOptimizer.Core.Library;
 using GameOptimizer.Core.Optimize;
+using GameOptimizer.Core.Recommend;
 using GameOptimizer.Core.Safety;
 
 namespace GameOptimizer.App;
@@ -50,8 +51,16 @@ public partial class MainWindow : Window
         LayoutTicks();
         await ReplanAllAsync();
         var notes = scan.Notes.Concat(errors).ToList();
-        _vm.Status = $"{scan.Games.Count} games found." + (notes.Count > 0 ? "  " + string.Join("  ", notes) : "");
         _vm.Busy = false;
+
+        // Per-game recommendations come from published requirements (cached for a week), so they
+        // arrive after the list is shown. Only games the tool can change are looked up.
+        var supported = _vm.Games.Where(r => r.IsSupported).Select(r => r.Game).ToList();
+        var progress = new Progress<(int done, int total)>(p => _vm.Status = $"Reading published requirements {p.done}/{p.total}...");
+        var recs = await Task.Run(() => Recommender.RecommendAllAsync(hw, supported, progress));
+        _vm.SetRecommendations(recs);
+        await ReplanAllAsync();
+        if (notes.Count > 0) _vm.Status += "  " + string.Join("  ", notes);
     }
 
     /// <summary>Plans are only reads, so they run off the UI thread. Older results are dropped.</summary>
@@ -87,36 +96,33 @@ public partial class MainWindow : Window
         if (!_vm.Busy) _vm.Status = ready == 0 ? "Every supported game is already set for its slider step." : $"{ready} game(s) can be optimized.";
     }
 
+    static readonly string[] OffsetTicks = { "Fastest", "-2", "-1", "Recommended", "+1", "+2", "Best looking" };
+
     void LayoutTicks()
     {
         GlobalTicks.Children.Clear();
         double w = GlobalSlider.ActualWidth;
         if (w <= 0) return;
         const double thumbHalf = 5.5;
-        for (int i = 0; i < QualitySteps.Count; i++)
+        for (int i = 0; i < OffsetTicks.Length; i++)
         {
-            bool rec = i == _vm.RecommendedStep;
+            bool mid = i == 3;
             var tb = new TextBlock
             {
-                Text = ((QualityStep)i).Label() + (rec ? "\nRecommended" : ""),
+                Text = OffsetTicks[i],
                 TextAlignment = TextAlignment.Center,
                 FontSize = 12,
-                Foreground = rec ? (Brush)FindResource("Accent") : (Brush)FindResource("Muted"),
-                FontWeight = rec ? FontWeights.SemiBold : FontWeights.Normal,
+                Foreground = mid ? (Brush)FindResource("Accent") : (Brush)FindResource("Muted"),
+                FontWeight = mid ? FontWeights.SemiBold : FontWeights.Normal,
             };
             tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            double x = thumbHalf + i * (w - 2 * thumbHalf) / (QualitySteps.Count - 1);
+            double x = thumbHalf + i * (w - 2 * thumbHalf) / (OffsetTicks.Length - 1);
             Canvas.SetLeft(tb, Math.Clamp(x - tb.DesiredSize.Width / 2, -8, w - tb.DesiredSize.Width + 8));
             GlobalTicks.Children.Add(tb);
         }
     }
 
-    void UseRecommended_Click(object sender, RoutedEventArgs e)
-    {
-        _vm.GlobalStep = _vm.RecommendedStep;
-        _vm.Prefs.GlobalStep = null; // keep following the recommendation if the hardware changes
-        _vm.Prefs.Save();
-    }
+    void UseRecommended_Click(object sender, RoutedEventArgs e) => _vm.GlobalOffset = 0;
 
     void ResetRow_Click(object sender, RoutedEventArgs e)
     {

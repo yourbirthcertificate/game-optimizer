@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="..\..\rules\*.json" LogicalName="GameOptimizer.Core.rules.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\data\gpus.json" LogicalName="GameOptimizer.Core.data.gpus.json" />
   </ItemGroup>
 
   <ItemGroup>

@@ -25,13 +25,31 @@ a list of supported titles.
 
 ### The slider
 
-There are six steps: Low, Medium, Balanced, High, Very high and Ultra. The app marks one as
-**Recommended** for your PC from the graphics card's class, its memory and the screen
-resolution. An upper-mid laptop graphics card at 2560x1440 lands on High, for example.
+Every game has its own slider with six steps: Low, Medium, Balanced, High, Very high and
+Ultra. Each game starts at the step **recommended for that game on your PC**, so a 2016
+indie game can sit on Ultra while a recent Unreal 5 game sits on High.
 
-The **All games** slider moves every game you have not set yourself. Moving a game's own
-slider marks it **custom**; it then stays where you put it until you press the reset
-arrow next to it. Your choices are saved.
+The recommendation compares your graphics card with the card the game's publisher
+recommends:
+
+1. The game's published requirements come from Steam's store page, or from PCGamingWiki
+   when Steam lists no graphics card.
+2. Both cards are looked up in a table of about 360 cards with speed scores (shared with
+   [Game Spec Check](https://github.com/yourbirthcertificate/game-spec-check)). Laptop
+   chips count as slower than their desktop namesakes.
+3. Published requirements usually assume 1080p, so a bigger screen raises the bar (about
+   1.5x for 1440p).
+4. The result picks the step: about 0.75x of the recommended card or more is High, 1.1x is
+   Very high, 1.4x is Ultra.
+
+If a game lists no graphics card, its release year decides (older games get one or two
+steps above the PC-wide step). If nothing is known, the PC-wide step is used. Hover over
+"Recommended" under a game's slider to see the reason.
+
+The **All games** slider shifts every game together, from three steps faster to three
+steps nicer than its recommendation. Moving a game's own slider marks it **custom**; it
+then stays where you put it until you press the reset arrow next to it. Your choices are
+saved.
 
 Every step also sets the game to your native resolution, turns VSync off and caps the
 frame rate 3 fps under your screen's refresh rate (162 fps on a 165 Hz screen). That keeps
@@ -56,6 +74,19 @@ settings at startup. VOID/BREAKER does this with an Unreal `Settings.sav`. For t
 games a small JSON rule in [`rules/`](rules/README.md) says which values to set. The app
 can edit Unreal `.sav` (GVAS) files from UE4 through UE5.4 and later, and it only edits one
 when writing the parsed file back reproduces the original byte for byte.
+
+## What it sends over the internet
+
+Only Steam app ids, to two places: Steam's store API
+(`store.steampowered.com/api/appdetails`) and PCGamingWiki
+(`pcgamingwiki.com`), to read published system requirements. Only games the tool can
+change are looked up. Answers are cached for a week in `%LOCALAPPDATA%\GameOpt\cache`, and
+requests are paced (one every 1.5 seconds to Steam). Nothing about your hardware is sent.
+
+If you also use Game Spec Check, its cache is read too, so games it already looked up are
+not fetched again. The installed version's cache is found on its own; for a source checkout
+run `gameopt shared-cache add <checkout>\.cache`. Use `--offline` on any command to rely on
+cached data only.
 
 ## Safety
 
@@ -86,17 +117,20 @@ time. Choose "More info", then "Run anyway".
 ### Command line
 
 ```
-gameopt hw                      Hardware and the recommended step
-gameopt scan                    Every game, its engine and what can be done
+gameopt hw                      Hardware, graphics card score and the PC-wide step
+gameopt scan                    Every game, its engine, its step and what can be done
+gameopt recommend [--game NAME] Each game's recommended step and why
 gameopt preview [--game NAME] [--step STEP]
 gameopt apply   [--game NAME] [--step STEP]
 gameopt restore [--run ID] [--game NAME]
 gameopt restore --list
-gameopt step --global high | recommended
+gameopt step --offset -1        Every game one step faster than recommended (-3 to 3)
 gameopt step --game NAME veryhigh | reset
+gameopt shared-cache add DIR    Also read requirement data from a Game Spec Check cache
 ```
 
-`preview` never writes anything. `apply` uses the same options.
+`preview` never writes anything. `apply` uses the same options. Add `--offline` to skip
+network lookups.
 
 ### From source
 
@@ -124,8 +158,12 @@ dotnet publish src/GameOptimizer.Cli -c Release -r win-x64
   read; the others show as numbers in the preview.
 - Source 2 games, and engines without a handler such as Elden Ring's or Helldivers 2's, need
   a rule file. None exist yet.
-- The graphics card scores are rough. If the recommendation looks wrong for your PC, move
-  the slider; it is only a starting point.
+- The graphics card scores and the headroom bands are rough. If a recommendation looks wrong
+  for a game, move its slider; it is only a starting point.
+- Requirement lists name one or two cards and say nothing about frame rate, so the
+  recommendation cannot know that a game is CPU-bound or has a heavy ray tracing mode.
+- Community guides are not read automatically: they are free text, and turning them into
+  settings would be guessing. Their advice belongs in a rule file, where it can be checked.
 
 ## Adding a game
 

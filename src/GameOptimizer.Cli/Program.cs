@@ -1,26 +1,34 @@
-﻿using GameOptimizer.Core;
-using GameOptimizer.Core.Hardware;
+﻿using GameOptimizer.Core.Hardware;
 using GameOptimizer.Core.Library;
 using GameOptimizer.Core.Optimize;
+using GameOptimizer.Core.Recommend;
 using GameOptimizer.Core.Safety;
 
 const string Usage = """
 GameOptimizer command line
 
-  gameopt hw                         Show the hardware and the recommended slider step
-  gameopt scan                       List installed games, engines and what can be optimized
+  gameopt hw                         Hardware and the PC-wide recommended step
+  gameopt scan [--offline]           Installed games, engines, recommended step and what can be done
+  gameopt recommend [--game NAME] [--offline]
+                                     Each game's recommended step and the reason for it
   gameopt preview [options]          Show every change without writing anything
   gameopt apply [options]            Back up, then write the changes
   gameopt restore [--run ID] [--game NAME]   Undo the latest (or a chosen) run
   gameopt restore --list             List backup runs
   gameopt step                       Show slider choices
-  gameopt step --global STEP|recommended
+  gameopt step --offset N            Shift every game N steps from its recommendation (-3 to 3)
   gameopt step --game NAME STEP|reset
+  gameopt shared-cache [add DIR | remove DIR]
+                                     Game Spec Check cache folders to reuse requirement data from
 
 Options for preview and apply:
   --game NAME    Only games whose name contains NAME (repeatable). Default: all games.
-  --step STEP    Use this step instead of the saved slider choices.
+  --step STEP    Use this step for every selected game instead of the slider choices.
                  Steps: low, medium, balanced, high, veryhigh, ultra (or 0-5).
+  --offline      Use cached requirement data only.
+
+Recommendations read each game's published requirements from Steam and PCGamingWiki
+(only the Steam app id is sent) and cache them for a week.
 """;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -28,17 +36,20 @@ var argv = args.ToList();
 if (argv.Count == 0 || argv[0] is "-h" or "--help" or "help") { Console.WriteLine(Usage); return 0; }
 var cmd = argv[0].ToLowerInvariant();
 argv.RemoveAt(0);
+if (argv.Remove("--offline")) RequirementSource.AllowNetwork = false;
 
 try
 {
     return cmd switch
     {
         "hw" => Hw(),
-        "scan" => Scan(),
-        "preview" => Optimize(argv, write: false),
-        "apply" => Optimize(argv, write: true),
+        "scan" => await Scan(),
+        "recommend" => await Recommend(argv),
+        "preview" => await Optimize(argv, write: false),
+        "apply" => await Optimize(argv, write: true),
         "restore" => Restore(argv),
         "step" => Step(argv),
+        "shared-cache" => SharedCache(argv),
         _ => Fail($"Unknown command '{cmd}'.\n\n{Usage}"),
     };
 }
@@ -52,27 +63,63 @@ static int Hw()
     Console.WriteLine(hw);
     if (hw.Model.Length > 0) Console.WriteLine($"Model: {hw.Model}{(hw.IsLaptop ? " (laptop)" : "")}");
     if (hw.OtherGpus.Count > 0) Console.WriteLine($"Also found: {string.Join(", ", hw.OtherGpus)}");
+    var gpu = GpuMatcher.Identify(hw.Gpu);
+    Console.WriteLine($"Graphics card score: {(gpu is null ? "not in the table" : $"{gpu.Score} ({gpu.Name})")}");
     Console.WriteLine($"Frame cap: {hw.FpsCap} fps");
-    Console.WriteLine($"Recommended step: {hw.Recommended.Label()} (score {hw.Score:0.00})");
+    Console.WriteLine($"PC-wide step (used when a game has no requirement data): {hw.Recommended.Label()}");
     foreach (var r in hw.Reasons) Console.WriteLine($"  - {r}");
     return 0;
 }
 
-static int Scan()
+/// <summary>Everything a command needs: hardware, games, rules, prefs and per-game recommendations.</summary>
+static async Task<Session> Load(List<string>? filters = null, bool quiet = false)
 {
-    var hw = HardwareDetector.Detect();
-    var scan = LibraryScanner.Scan();
+    var s = new Session { Hw = HardwareDetector.Detect(), Scan = LibraryScanner.Scan(), Prefs = Prefs.Load() };
+    s.Prefs.ApplySharedCaches();
     var errors = new List<string>();
-    var rules = RuleSet.Load(errors);
-    var prefs = Prefs.Load();
-    foreach (var n in scan.Notes.Concat(errors)) Console.WriteLine($"Note: {n}");
-    Console.WriteLine($"{scan.Games.Count} games. Recommended step: {hw.Recommended.Label()}\n");
-    foreach (var g in scan.Games)
+    s.Rules = RuleSet.Load(errors);
+    foreach (var n in s.Scan.Notes.Concat(errors)) Console.WriteLine($"Note: {n}");
+    s.Games = filters is { Count: > 0 } ? Select(s.Scan, filters) : s.Scan.Games;
+
+    // Only games the tool can change need a recommendation; that keeps lookups to a minimum.
+    var supported = s.Games.Where(g => Planner.Plan(g, s.Hw, s.Hw.Recommended, s.Rules).Status != PlanStatus.Skipped).ToList();
+    IProgress<(int done, int total)>? progress = quiet ? null : new Progress<(int done, int total)>(p =>
     {
-        var step = prefs.StepFor(g.Id, hw.Recommended);
-        var plan = Planner.Plan(g, hw, step, rules);
+        Console.Error.Write($"\rReading requirements {p.done}/{p.total}   ");
+        if (p.done == p.total) Console.Error.WriteLine();
+    });
+    s.Recs = await Recommender.RecommendAllAsync(s.Hw, supported, progress);
+    return s;
+}
+
+static async Task<int> Scan()
+{
+    var s = await Load();
+    Console.WriteLine($"{s.Games.Count} games. Slider: {Prefs.OffsetLabel(s.Prefs.GlobalOffset)}\n");
+    foreach (var g in s.Games)
+    {
+        var plan = Planner.Plan(g, s.Hw, s.StepFor(g), s.Rules);
         var engine = g.Engine + (g.EngineDetail is null ? "" : $" ({g.EngineDetail})");
-        Console.WriteLine($"{g.Name,-45} {engine,-38} {plan.StatusText}{(plan.RuleId is null ? "" : $"  [rule: {plan.RuleId}]")}");
+        var step = plan.Status == PlanStatus.Skipped ? "" : s.StepFor(g).Label() + (s.Prefs.PerGame.ContainsKey(g.Id) ? "*" : "");
+        Console.WriteLine($"{Trim(g.Name, 40),-40} {Trim(engine, 34),-34} {step,-10} {plan.StatusText}{(plan.RuleId is null ? "" : $"  [rule: {plan.RuleId}]")}");
+    }
+    Console.WriteLine("\n* = set by hand for that game. 'gameopt recommend' shows why each step was picked.");
+    return 0;
+}
+
+static string Trim(string s, int n) => s.Length <= n ? s : s[..(n - 1)] + "…";
+
+static async Task<int> Recommend(List<string> argv)
+{
+    var filters = new List<string>();
+    for (int i = 0; i < argv.Count; i++)
+        if (argv[i] == "--game" && i + 1 < argv.Count) filters.Add(argv[++i]);
+        else throw new ArgumentException($"Unexpected argument '{argv[i]}'.");
+    var s = await Load(filters);
+    foreach (var g in s.Games)
+    {
+        if (!s.Recs.TryGetValue(g.Id, out var r)) continue;
+        Console.WriteLine($"{Trim(g.Name, 40),-40} {r.Step.Label(),-10} {r.Reason}");
     }
     return 0;
 }
@@ -97,36 +144,30 @@ static (List<string> games, QualityStep? step) ParseOptions(List<string> argv)
 
 static List<GameInfo> Select(ScanResult scan, List<string> filters)
 {
-    if (filters.Count == 0) return scan.Games;
     var hits = scan.Games.Where(g => filters.Any(f => g.Name.Contains(f, StringComparison.OrdinalIgnoreCase) || g.Id.Equals(f, StringComparison.OrdinalIgnoreCase))).ToList();
     if (hits.Count == 0) throw new ArgumentException($"No installed game matches {string.Join(", ", filters)}.");
     return hits;
 }
 
-static int Optimize(List<string> argv, bool write)
+static async Task<int> Optimize(List<string> argv, bool write)
 {
     var (filters, forced) = ParseOptions(argv);
-    var hw = HardwareDetector.Detect();
-    var scan = LibraryScanner.Scan();
-    var errors = new List<string>();
-    var rules = RuleSet.Load(errors);
-    var prefs = Prefs.Load();
-    foreach (var e in errors) Console.WriteLine($"Note: {e}");
+    var s = await Load(filters);
     var images = ProcessGuard.RunningImages();
 
     var plans = new List<GamePlan>();
-    foreach (var g in Select(scan, filters))
+    foreach (var g in s.Games)
     {
-        var plan = Planner.Plan(g, hw, forced ?? prefs.StepFor(g.Id, hw.Recommended), rules);
+        var plan = Planner.Plan(g, s.Hw, forced ?? s.StepFor(g), s.Rules);
         if (plan.HasChanges && ProcessGuard.RunningFrom(g.InstallDir, images) is not null) plan.Status = PlanStatus.Running;
         plans.Add(plan);
         if (filters.Count == 0 && plan.Status is PlanStatus.Skipped or PlanStatus.NothingToChange) continue;
-        Print(plan);
+        Print(plan, s.Recs.GetValueOrDefault(g.Id));
     }
     if (filters.Count == 0)
     {
-        var quiet = plans.Where(p => p.Status is PlanStatus.Skipped or PlanStatus.NothingToChange).ToList();
-        Console.WriteLine($"{quiet.Count} other game(s) need nothing or were skipped. Use 'gameopt scan' to see why.");
+        var quiet = plans.Count(p => p.Status is PlanStatus.Skipped or PlanStatus.NothingToChange);
+        Console.WriteLine($"{quiet} other game(s) need nothing or were skipped. Use 'gameopt scan' to see why.");
     }
 
     var ready = plans.Where(p => p.Status == PlanStatus.Ready).ToList();
@@ -136,7 +177,7 @@ static int Optimize(List<string> argv, bool write)
         return 0;
     }
     if (ready.Count == 0) { Console.WriteLine("\nNothing to apply."); return 0; }
-    var res = Applier.Apply(ready, forced is null ? "Saved slider choices" : $"Step {forced.Value.Label()}");
+    var res = Applier.Apply(ready, forced is null ? "Slider choices" : $"Step {forced.Value.Label()}");
     Console.WriteLine();
     foreach (var a in res.Applied) Console.WriteLine($"Applied   {a}");
     foreach (var r in res.Refused) Console.WriteLine($"Refused   {r}");
@@ -145,9 +186,10 @@ static int Optimize(List<string> argv, bool write)
     return res.Errors.Count > 0 ? 1 : 0;
 }
 
-static void Print(GamePlan p)
+static void Print(GamePlan p, GameRecommendation? rec)
 {
     Console.WriteLine($"\n== {p.Game.Name} ({p.Game.Engine}, step {p.Step.Label()}): {p.StatusText}");
+    if (rec is not null) Console.WriteLine($"   recommended {rec.Step.Label()}: {rec.Reason}");
     foreach (var f in p.Files)
     {
         Console.WriteLine($"   {f.Path}");
@@ -192,18 +234,16 @@ static int Restore(List<string> argv)
 static int Step(List<string> argv)
 {
     var prefs = Prefs.Load();
-    var hw = HardwareDetector.Detect();
     if (argv.Count == 0)
     {
-        Console.WriteLine($"Global: {(prefs.GlobalStep?.Label() ?? $"recommended ({hw.Recommended.Label()})")}");
-        foreach (var (id, s) in prefs.PerGame) Console.WriteLine($"  {id}: {s.Label()} (custom)");
+        Console.WriteLine($"All games: {Prefs.OffsetLabel(prefs.GlobalOffset)}");
+        foreach (var (id, s) in prefs.PerGame) Console.WriteLine($"  {id}: {s.Label()} (set by hand)");
         return 0;
     }
-    if (argv is ["--global", var g])
+    if (argv is ["--offset", var o])
     {
-        if (g.Equals("recommended", StringComparison.OrdinalIgnoreCase)) prefs.GlobalStep = null;
-        else if (QualitySteps.TryParse(g, out var s)) prefs.GlobalStep = s;
-        else throw new ArgumentException($"Unknown step '{g}'.");
+        if (!int.TryParse(o, out var n) || Math.Abs(n) > Prefs.MaxOffset) throw new ArgumentException($"Offset must be -{Prefs.MaxOffset} to {Prefs.MaxOffset}.");
+        prefs.GlobalOffset = n;
     }
     else if (argv is ["--game", var name, var val])
     {
@@ -213,8 +253,45 @@ static int Step(List<string> argv)
         else if (QualitySteps.TryParse(val, out var s)) prefs.PerGame[game[0].Id] = s;
         else throw new ArgumentException($"Unknown step '{val}'.");
     }
-    else throw new ArgumentException("Use: gameopt step --global STEP|recommended, or gameopt step --game NAME STEP|reset");
+    else throw new ArgumentException("Use: gameopt step --offset N, or gameopt step --game NAME STEP|reset");
     prefs.Save();
     Console.WriteLine("Saved.");
     return 0;
+}
+
+static int SharedCache(List<string> argv)
+{
+    var prefs = Prefs.Load();
+    if (argv is ["add", var dir])
+    {
+        var full = Path.GetFullPath(dir);
+        if (!Directory.Exists(full)) throw new ArgumentException($"{full} does not exist.");
+        if (!prefs.SharedCacheDirs.Contains(full, StringComparer.OrdinalIgnoreCase)) prefs.SharedCacheDirs.Add(full);
+        prefs.Save();
+    }
+    else if (argv is ["remove", var d])
+    {
+        prefs.SharedCacheDirs.RemoveAll(x => x.Equals(Path.GetFullPath(d), StringComparison.OrdinalIgnoreCase));
+        prefs.Save();
+    }
+    else if (argv.Count > 0) throw new ArgumentException("Use: gameopt shared-cache [add DIR | remove DIR]");
+    prefs.ApplySharedCaches();
+    Console.WriteLine("Requirement data is read from:");
+    Console.WriteLine($"  {RequirementSource.CacheDir} (own cache)");
+    foreach (var d in RequirementSource.SharedCacheDirs)
+        Console.WriteLine($"  {d}{(Directory.Exists(d) ? "" : " (not found)")} (Game Spec Check, read only)");
+    return 0;
+}
+
+sealed class Session
+{
+    public required HardwareInfo Hw { get; init; }
+    public required ScanResult Scan { get; init; }
+    public required Prefs Prefs { get; init; }
+    public IReadOnlyList<GameRule> Rules { get; set; } = Array.Empty<GameRule>();
+    public List<GameInfo> Games { get; set; } = new();
+    public Dictionary<string, GameRecommendation> Recs { get; set; } = new();
+
+    public QualityStep Recommended(GameInfo g) => Recs.TryGetValue(g.Id, out var r) ? r.Step : Hw.Recommended;
+    public QualityStep StepFor(GameInfo g) => Prefs.StepFor(g.Id, Recommended(g));
 }
