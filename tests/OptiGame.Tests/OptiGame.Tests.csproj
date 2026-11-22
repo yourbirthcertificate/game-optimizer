@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\OptiGame.Core\OptiGame.Core.csproj" />
+    <ProjectReference Include="..\..\src\OptiGame.Cli\OptiGame.Cli.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -106,23 +106,23 @@ public static partial class Planner
     // ------------------------------------------------------------------ Unreal
     static readonly string[] UnrealPlatforms = { "Windows", "WindowsNoEditor", "WinGDK", "WindowsClient" };
 
-    static IEnumerable<string> UnrealRoots(GameInfo g, GameRule? rule)
+    static IEnumerable<string> UnrealRoots(GameInfo g, GameRule? rule, string? local = null, string? documents = null)
     {
         var names = new[] { rule?.UnrealConfigName, g.EngineDetail }.Where(n => !string.IsNullOrEmpty(n)).Distinct();
         foreach (var n in names)
         {
-            yield return Path.Combine(LocalAppData, n!);
-            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", n!);
+            yield return Path.Combine(local ?? LocalAppData, n!);
+            yield return Path.Combine(documents ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", n!);
         }
     }
 
+    internal static IEnumerable<string> UnrealSettingsPaths(GameInfo g, GameRule? rule, string? local = null, string? documents = null) =>
+        from root in UnrealRoots(g, rule, local, documents)
+        from platform in UnrealPlatforms
+        select Path.Combine(root, "Saved", "Config", platform, "GameUserSettings.ini");
+
     public static List<string> FindUnrealSettingsAll(GameInfo g, GameRule? rule) =>
-        (from r in UnrealRoots(g, rule)
-         from p in UnrealPlatforms
-         let f = Path.Combine(r, "Saved", "Config", p, "GameUserSettings.ini")
-         where File.Exists(f)
-         orderby File.GetLastWriteTimeUtc(f) descending
-         select f).ToList();
+        UnrealSettingsPaths(g, rule).Where(File.Exists).OrderByDescending(File.GetLastWriteTimeUtc).ToList();
 
     public static string? FindUnrealSettings(GameInfo g, GameRule? rule) => FindUnrealSettingsAll(g, rule).FirstOrDefault();
 
@@ -270,10 +270,13 @@ public static partial class Planner
     }
 
     // ------------------------------------------------------------------ Source 1
+    internal static string SourceSettingsPath(GameInfo game) =>
+        Path.Combine(game.InstallDir, game.EngineDetail ?? "", "cfg", "video.txt");
+
     static void Source(GamePlan plan, HardwareInfo hw, OptimizeRequest req)
     {
-        var dir = Path.Combine(plan.Game.InstallDir, plan.Game.EngineDetail ?? "", "cfg");
-        var path = Path.Combine(dir, "video.txt");
+        var path = SourceSettingsPath(plan.Game);
+        var dir = Path.GetDirectoryName(path)!;
         if (!File.Exists(path)) { plan.Skip(SkipKind.NotCreatedYet, "No cfg\\video.txt yet. Start the game once so it creates its settings.", dir); return; }
         plan.SettingsFolder = dir;
         var data = File.ReadAllBytes(path);

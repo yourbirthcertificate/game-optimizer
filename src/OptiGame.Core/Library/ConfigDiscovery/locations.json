@@ -1,0 +1,61 @@
+[
+  {
+    "steamAppId": "553850",
+    "store": "Steam",
+    "root": "roaming",
+    "relativePath": "Arrowhead/Helldivers2/user_settings.config",
+    "formatHint": "config",
+    "source": "Arrowhead support",
+    "url": "https://arrowhead.zendesk.com/hc/en-us/articles/15979848896540-The-game-starts-to-a-black-screen-but-I-still-hear-the-audio-of-the-opening-cinematic",
+    "reviewed": "2026-11-22"
+  },
+  {
+    "steamAppId": "1245620",
+    "store": "Steam",
+    "root": "roaming",
+    "relativePath": "EldenRing/GraphicsConfig.xml",
+    "formatHint": "xml",
+    "source": "PCGamingWiki",
+    "url": "https://www.pcgamingwiki.com/wiki/Elden_Ring#Configuration_file(s)_location",
+    "reviewed": "2026-11-22"
+  },
+  {
+    "steamAppId": "1602010",
+    "store": "Steam",
+    "root": "roaming",
+    "relativePath": "P4U2/Save/p4u2configs.ini",
+    "formatHint": "ini",
+    "source": "PCGamingWiki",
+    "url": "https://www.pcgamingwiki.com/wiki/Persona_4_Arena_Ultimax#Configuration_file(s)_location",
+    "reviewed": "2026-11-22"
+  },
+  {
+    "steamAppId": "108600",
+    "root": "profile",
+    "relativePath": "Zomboid/options.ini",
+    "formatHint": "ini",
+    "source": "Project Zomboid support forum",
+    "url": "https://steamcommunity.com/app/108600/discussions/1/595142432657531532/",
+    "reviewed": "2026-11-22"
+  },
+  {
+    "steamAppId": "493340",
+    "store": "Steam",
+    "root": "local",
+    "relativePath": "Frontier Developments/Planet Coaster/Config_Local/Game_local.config.xml",
+    "formatHint": "xml",
+    "source": "Planet Coaster forum moderator",
+    "url": "https://steamcommunity.com/app/493340/discussions/0/1368380934245063021/",
+    "reviewed": "2026-11-22"
+  },
+  {
+    "steamAppId": "493340",
+    "store": "Steam",
+    "root": "savedGames",
+    "relativePath": "Frontier Developments/Planet Coaster/<storeUserId>/Config/Game_remote.config.xml",
+    "formatHint": "xml",
+    "source": "Planet Coaster community report",
+    "url": "https://steamcommunity.com/app/493340/discussions/0/1368380934245063021/",
+    "reviewed": "2026-11-22"
+  }
+]

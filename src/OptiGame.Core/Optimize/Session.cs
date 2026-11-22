@@ -20,11 +20,16 @@ public sealed class OptimizerSession
     public List<string> Notes { get; } = new();
     public Dictionary<string, GameRecommendation> Recs { get; } = new();
 
-    public static OptimizerSession Load(HardwareInfo? hw = null)
+    public static OptimizerSession Load(HardwareInfo? hw = null) => Load(hw, forInspection: false);
+
+    /// <summary>Loads the library and preferences without creating migration backups.</summary>
+    public static OptimizerSession LoadForInspection() => Load(null, forInspection: true);
+
+    static OptimizerSession Load(HardwareInfo? hw, bool forInspection)
     {
         SettingsLocator.Reset();
-        var prefs = Prefs.Load();
-        prefs.ApplySharedCaches();
+        var prefs = Prefs.Load(keepV1Copy: !forInspection);
+        if (!forInspection) prefs.ApplySharedCaches();
         var s = new OptimizerSession { Hw = hw ?? HardwareDetector.Detect(), Scan = LibraryScanner.Scan(prefs.ManualGames), Prefs = prefs };
         var errors = new List<string>();
         s.Rules = RuleSet.Load(errors);

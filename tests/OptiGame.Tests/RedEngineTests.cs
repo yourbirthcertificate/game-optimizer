@@ -299,7 +299,7 @@ public sealed class RedEngineTests : IDisposable
         try
         {
             CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = new CultureInfo("nl-NL");
-            Assert.Equal("5,0", 5.0.ToString("0.0"));                      // the culture really is a comma culture
+            Assert.Equal("5,0", 5.0.ToString("0.0", CultureInfo.CurrentCulture));                      // the culture really is a comma culture
             var nl = Plan(QualityStep.High);
             CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
             var inv = Plan(QualityStep.High);

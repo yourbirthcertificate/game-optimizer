@@ -52,7 +52,7 @@ public sealed class KvNode
     }
 
     /// <summary>Yields strings; "{" as "\u0001{" and "}" as null. Skips comments and [$CONDITIONALS].</summary>
-    static IEnumerable<string?> Tokenize(string s)
+    internal static IEnumerable<string?> Tokenize(string s)
     {
         int i = 0;
         while (i < s.Length)

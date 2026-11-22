@@ -20,6 +20,9 @@ Look around
                                       Each game's recommended step, its basis and caveats
   optigame-cli why --game NAME             Why a game is skipped and what you can do
   optigame-cli why --all-skipped           One line for every skipped game, with its likely settings folder
+  optigame-cli config find --game NAME [--offline]
+  optigame-cli config find --all-skipped [--offline]
+                                      Read-only config locations, with confidence and evidence
 
 Optimize
   optigame-cli preview [options]           Show every change; nothing is written
@@ -100,6 +103,7 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
                 "scan" => await Scan(),
                 "recommend" => await Recommend(argv),
                 "why" => Why(argv),
+                "config" => Config(argv),
                 "preview" => await Optimize(argv, write: false),
                 "apply" => await Optimize(argv, write: true),
                 "history" => History(argv),
@@ -242,17 +246,23 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
     }
 
     /// <summary>One line per skipped game: why, and where its settings probably are. Read-only.</summary>
+    static List<GamePlan> SkippedPlans(OptimizerSession session)
+    {
+        var images = ProcessGuard.RunningImages();
+        return session.Scan.Games.Select(game => session.PlanFor(game, runningImages: images))
+            .Where(plan => plan.Status == PlanStatus.Skipped).ToList();
+    }
+
     static int WhyAllSkipped()
     {
         var s = Load(quietNotes: true);
-        var images = ProcessGuard.RunningImages();
-        var skipped = s.Scan.Games.Select(g => (g, plan: s.PlanFor(g, runningImages: images))).Where(x => x.plan.Status == PlanStatus.Skipped).ToList();
-        foreach (var (g, plan) in skipped)
+        var skipped = SkippedPlans(s);
+        foreach (var plan in skipped)
         {
             var hint = plan.Skipped.FirstOrDefault(x => x.StartsWith("Its settings are probably in"));
-            Console.WriteLine($"{g.Name} | {g.Engine} | {plan.SkipKind} | {(hint is null ? "-" : hint)}");
+            Console.WriteLine($"{plan.Game.Name} | {plan.Game.Engine} | {plan.SkipKind} | {(hint is null ? "-" : hint)}");
         }
-        Console.WriteLine($"{Environment.NewLine}{skipped.Count} of {s.Scan.Games.Count} games are skipped; {skipped.Count(x => x.plan.Skipped.Any(h => h.StartsWith("Its settings are probably in")))} have a likely settings folder.");
+        Console.WriteLine($"{Environment.NewLine}{skipped.Count} of {s.Scan.Games.Count} games are skipped; {skipped.Count(plan => plan.Skipped.Any(h => h.StartsWith("Its settings are probably in")))} have a likely settings folder.");
         return 0;
     }
 

@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OptiGame.Core\OptiGame.Core.csproj" />
+    <InternalsVisibleTo Include="OptiGame.Tests" />
   </ItemGroup>
 
   <PropertyGroup>

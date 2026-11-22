@@ -78,9 +78,7 @@ public static class SettingsLocator
         if (roots is not null) idx = Index(roots);
         else lock (Lock) idx = _index ??= Index(Roots());
 
-        var keys = new[] { Normalize(g.Name), Normalize(Path.GetFileName(g.InstallDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))) }
-            .Where(k => k.Length >= 3).Distinct();
-        foreach (var k in keys)
+        foreach (var k in MatchKeys(g))
         {
             if (!idx.TryGetValue(k, out var folders)) continue;
             foreach (var f in folders)
@@ -92,6 +90,20 @@ public static class SettingsLocator
         return null;
     }
 
+    internal static IEnumerable<string> MatchKeys(GameInfo game, int minimumLength = 3) =>
+        new[]
+        {
+            Normalize(game.Name),
+            Normalize(Path.GetFileName(game.InstallDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))),
+        }.Where(key => key.Length >= minimumLength).Distinct();
+
+    internal static bool IsSettingsFile(string name)
+    {
+        var lower = name.ToLowerInvariant();
+        return SettingExt.Contains(Path.GetExtension(lower)) && SettingWords.Any(lower.Contains)
+            && !lower.Contains("backup") && !lower.Contains(".bak");
+    }
+
     static List<string> SettingsFiles(string folder)
     {
         var found = new List<string>();
@@ -99,11 +111,7 @@ public static class SettingsLocator
         {
             foreach (var f in Directory.EnumerateFiles(folder, "*", new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = 2, IgnoreInaccessible = true }))
             {
-                var name = Path.GetFileName(f);
-                var lower = name.ToLowerInvariant();
-                if (!SettingExt.Contains(Path.GetExtension(lower))) continue;
-                if (!SettingWords.Any(lower.Contains)) continue;
-                if (lower.Contains("backup") || lower.Contains(".bak")) continue;
+                if (!IsSettingsFile(Path.GetFileName(f))) continue;
                 found.Add(Path.GetRelativePath(folder, f));
                 if (found.Count >= 4) break;
             }
