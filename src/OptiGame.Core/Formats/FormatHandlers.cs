@@ -17,6 +17,7 @@ internal static class FormatHandlers
     static readonly Dictionary<string, IFormatHandler> Handlers = new(StringComparer.Ordinal)
     {
         ["xml"] = new XmlSettingsHandler(),
+        [SjsonSettings.Format] = new SjsonSettingsHandler(),
     };
 
     public static IFormatHandler? Find(string format) => Handlers.GetValueOrDefault(format);

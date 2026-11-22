@@ -33,8 +33,12 @@ internal sealed class ReviewedConfigSource(IReadOnlyList<ReviewedLocation>? pack
             yield return ConfigLead.File(path, entry.FormatHint,
                 new(entry.Source, "Reviewed Windows config path for Steam app " + id + ".", entry.Url, entry.Reviewed),
                 strongAssociation: true,
-                confirm: entry.FormatHint == "xml" && Optimize.Planner.IsEldenRing(search.Game)
-                    ? Optimize.Planner.IsEldenRingSettings : null);
+                confirm: entry.FormatHint switch
+                {
+                    "xml" when Optimize.Planner.IsEldenRing(search.Game) => Optimize.Planner.IsEldenRingSettings,
+                    "config" when Optimize.Planner.IsHelldivers(search.Game) => Optimize.Planner.IsHelldiversSettings,
+                    _ => null,
+                });
         }
         if (!found)
             search.Note(Source, "no-match", "The pack has no Windows config path for this game and store.");
