@@ -538,12 +538,12 @@ public static partial class Cli
         {
             var name = string.Join(' ', argv);
             var app = name.Length == 0 ? apps.FirstOrDefault(a => a.Kind == "maker" || a.UserPicked) : apps.FirstOrDefault(a => a.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
-            if (app is null) return Fail(name.Length == 0 ? "No vendor app was found." : $"No vendor app matching '{name}'. Run 'optigame vendor list'.");
+            if (app is null) return Fail(name.Length == 0 ? "No vendor app was found." : $"No vendor app matching '{name}'. Run 'optigame-cli vendor list'.");
             var err = await OptiGame.Core.Vendors.VendorCatalog.LaunchAsync(app);
             Console.WriteLine(err.Length == 0 ? $"Opened {app.Name}." : err);
             return err.Length == 0 ? 0 : 1;
         }
-        return Fail("Use: optigame vendor [list] | optigame vendor open [NAME]");
+        return Fail("Use: optigame-cli vendor [list] | optigame-cli vendor open [NAME]");
     }
 
     static async Task<int> SpecCheck(List<string> argv)

@@ -18,7 +18,7 @@ public sealed record Choice(string Label, string Key)
 }
 
 /// <summary>One game in the list: its slider, its own settings panel and its current plan.</summary>
-public sealed class GameRow : Observable
+public sealed partial class GameRow : Observable
 {
     readonly MainViewModel _vm;
     int _step;
@@ -143,6 +143,7 @@ public sealed class GameRow : Observable
             Raise(nameof(StatusText)); Raise(nameof(CanOptimize)); Raise(nameof(HasWarning)); Raise(nameof(IsSupported));
             Raise(nameof(HasActions)); Raise(nameof(CanOpenFolder)); Raise(nameof(CanAddRule)); Raise(nameof(CanLaunch)); Raise(nameof(WarningText));
             Raise(nameof(HasNotControlled)); Raise(nameof(NotControlledText)); Raise(nameof(EffectiveText));
+            RebuildChanges();
         }
     }
 
@@ -341,7 +342,7 @@ public sealed class GameRow : Observable
     }
 }
 
-public sealed class MainViewModel : Observable
+public sealed partial class MainViewModel : Observable
 {
     int _offset;
     bool _busy = true;
@@ -474,8 +475,8 @@ public sealed class MainViewModel : Observable
     public int SupportedCount => Games.Count(g => g.IsSupported);
     public string OptimizeAllText => $"Optimize all supported ({SupportedCount})";
     public string SelectedButtonsText => $"selected ({SelectedCount})";
-    public void SelectionChanged() { Raise(nameof(SelectedCount)); Raise(nameof(SelectionText)); Raise(nameof(SelectedButtonsText)); }
-    public void CountsChanged() { Raise(nameof(SupportedCount)); Raise(nameof(OptimizeAllText)); }
+    public void SelectionChanged() { Raise(nameof(SelectedCount)); Raise(nameof(SelectionText)); Raise(nameof(SelectedButtonsText)); Raise(nameof(AnySelected)); Raise(nameof(BatchVisible)); }
+    public void CountsChanged() { Raise(nameof(SupportedCount)); Raise(nameof(OptimizeAllText)); RaiseCounts(); }
 
     // ------------------------------------------------------------------ loading
 

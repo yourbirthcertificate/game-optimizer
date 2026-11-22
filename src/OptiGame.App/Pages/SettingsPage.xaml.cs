@@ -93,6 +93,11 @@ public sealed class SettingsContext : System.ComponentModel.INotifyPropertyChang
     public string VendorOpenText => _live.VendorOpenText;
     public bool HasVendor => _live.HasVendor;
     public System.Collections.ObjectModel.ObservableCollection<VendorApp> VendorApps => _live.VendorApps;
+    public string SteamGridKey
+    {
+        get => _live.Store.Data.SteamGridDbKey ?? "";
+        set { _live.Store.Data.SteamGridDbKey = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); _live.Store.Save(); }
+    }
     public string VersionText => _live.VersionText;
     public string UpdateStatus => _live.UpdateStatus;
     public bool UpdateAvailable => _live.UpdateAvailable;
@@ -106,6 +111,6 @@ public sealed class SettingsContext : System.ComponentModel.INotifyPropertyChang
     public string GpuLine => _live.GpuLine;
     public string TuneNote => _live.TuneNote;
     public string SpecCheckText => _games.SpecCheck is { } s
-        ? $"Found: {s.Path}" + (s.Version.Major > 0 ? $" (version {s.Version})" : "")
+        ? $"Found: {OptiGame.Core.PathDisplay.Short(s.Path)}" + (s.Version.Major > 0 ? $" (version {s.Version})" : "")
         : "Not found. Put it next to OptiGame+, in a game-spec-check folder beside it, or choose it here.";
 }

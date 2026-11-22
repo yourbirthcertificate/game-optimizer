@@ -60,6 +60,9 @@ public partial class App : Application
         if (pg >= 0 && pg + 1 < args.Length)
             win.Nav.SelectedIndex = Array.FindIndex(new[] { "dashboard", "apps", "games", "settings" }, n => n.Equals(args[pg + 1], StringComparison.OrdinalIgnoreCase)) is var i and >= 0 ? i : 0;
 
+        // Windows asks apps to close for an installer's Restart Manager, a sign-out or a shutdown: put everything back and go.
+        SessionEnding += (_, _) => win.ExitApp();
+
         var waiter = new Thread(() =>
         {
             while (_showEvent.WaitOne()) Dispatcher.BeginInvoke(win.ShowFromTray);

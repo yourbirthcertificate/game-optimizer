@@ -81,7 +81,7 @@ public sealed class ClosedApp
 public sealed class LiveSettings : Observable
 {
     private bool _auto = true, _reopen = true, _force = false, _throttle = true, _trim = true,
-        _plan = true, _prio = true, _fs = false, _tray = true, _notify = true, _purge = false, _updates = true;
+        _plan = true, _prio = true, _fs = false, _tray = true, _notify = true, _purge = false, _updates = true, _art = true;
 
     public bool AutoBoost { get => _auto; set => Set(ref _auto, value); }
     public bool ReopenAfterGame { get => _reopen; set => Set(ref _reopen, value); }
@@ -96,6 +96,8 @@ public sealed class LiveSettings : Observable
     public bool PurgeStandby { get => _purge; set => Set(ref _purge, value); }
     /// <summary>Ask GitHub's releases API for a newer version. Nothing about the PC is sent.</summary>
     public bool CheckForUpdates { get => _updates; set => Set(ref _updates, value); }
+    /// <summary>Fetch game art online (Epic catalog, GOG, Steam images, SteamGridDB). Off leaves Steam's local cache and exe icons only.</summary>
+    public bool FetchArt { get => _art; set => Set(ref _art, value); }
 }
 
 public sealed class LiveData
@@ -114,6 +116,8 @@ public sealed class LiveData
     public string? VendorAppName { get; set; }
     /// <summary>Game Spec Check, when the user chose where it is.</summary>
     public string? SpecCheckPath { get; set; }
+    /// <summary>Optional SteamGridDB API key (free account); widens art coverage for games without a Steam id.</summary>
+    public string? SteamGridDbKey { get; set; }
     /// <summary>When the updater last asked GitHub (at most once a day automatically).</summary>
     public DateTime? LastUpdateCheckUtc { get; set; }
 }

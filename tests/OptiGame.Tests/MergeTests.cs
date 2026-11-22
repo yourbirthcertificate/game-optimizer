@@ -416,3 +416,17 @@ public sealed class DataFolderTests : IDisposable
         Assert.Equal(8, second.Data.BoostCount);
     }
 }
+
+public sealed class PathDisplayTests
+{
+    [Fact]
+    public void Profile_folders_are_shown_as_variables_so_the_account_name_never_appears()
+    {
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var user = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        Assert.Equal(@"%LOCALAPPDATA%\Game\Saved\x.ini", PathDisplay.Short(Path.Combine(local, "Game", "Saved", "x.ini")));
+        Assert.Equal(@"%USERPROFILE%\Documents\a", PathDisplay.Short(Path.Combine(user, "Documents", "a")));
+        Assert.Equal(@"D:\Games\a.exe", PathDisplay.Short(@"D:\Games\a.exe"));
+        Assert.DoesNotContain(Environment.UserName, PathDisplay.Short(Path.Combine(local, "x")), StringComparison.OrdinalIgnoreCase);
+    }
+}

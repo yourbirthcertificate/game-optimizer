@@ -186,4 +186,95 @@
             <DataTrigger Binding="{Binding Severity}" Value="Critical"><Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" /></DataTrigger>
         </Style.Triggers>
     </Style>
+    <!-- Segmented control: a ListBox whose items are the segments (filters, the six quality steps) -->
+    <Style x:Key="Segmented" TargetType="ListBox">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="2" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="ItemsPanel">
+            <Setter.Value><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBox">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ItemsPresenter />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                    <Setter Property="Margin" Value="1,0" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border x:Name="Bd" CornerRadius="4" Padding="10,6" Background="Transparent" MinHeight="30">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.FontSize="12" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                    </Trigger>
+                                    <Trigger Property="IsEnabled" Value="False">
+                                        <Setter Property="Opacity" Value="0.5" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A game row in the master list: pill indicator on the selected one, subtle fill on hover -->
+    <Style x:Key="GameRowItem" TargetType="ListBoxItem">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Grid Margin="0,1" Background="Transparent">
+                        <Border x:Name="Bg" CornerRadius="4" Background="Transparent" />
+                        <Border x:Name="Pill" Width="3" Height="20" CornerRadius="2" HorizontalAlignment="Left" Margin="0"
+                                Background="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                        <ContentPresenter Margin="8,6" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            <Setter TargetName="Pill" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="StatusDot" TargetType="Ellipse">
+        <Setter Property="Width" Value="8" />
+        <Setter Property="Height" Value="8" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Fill" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding StatusDot}" Value="ready"><Setter Property="Fill" Value="{DynamicResource SystemFillColorSuccessBrush}" /></DataTrigger>
+            <DataTrigger Binding="{Binding StatusDot}" Value="warn"><Setter Property="Fill" Value="{DynamicResource SystemFillColorCautionBrush}" /></DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="Mono" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
 </ResourceDictionary>

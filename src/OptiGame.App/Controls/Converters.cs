@@ -22,3 +22,9 @@ public sealed class InvertBool : IValueConverter
     public object Convert(object v, Type t, object p, CultureInfo c) => v is bool b ? !b : v;
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => v is bool b ? !b : v;
 }
+
+/// <summary>The six quality step names, for the segmented control.</summary>
+public static class Steps
+{
+    public static IReadOnlyList<string> Names => OptiGame.App.ViewModels.GameRow.StepNames;
+}

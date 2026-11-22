@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using OptiGame.App.ViewModels;
@@ -68,9 +69,18 @@ public partial class GamesPage : UserControl
         LayoutTicks();
         await ReplanAllAsync();
         _vm.Busy = false;
+        _ = _vm.RefreshRunsAsync();
+        _ = LoadArtLaterAsync();
         var supported = _vm.Games.Where(r => r.IsSupported).ToList();
         await RecommendAsync(supported);
         if (session.Notes.Count > 0) _vm.Status += "  " + string.Join("  ", session.Notes);
+    }
+
+    /// <summary>Art waits a moment so each game's executables (found in the background) can supply an icon as the last resort.</summary>
+    async Task LoadArtLaterAsync()
+    {
+        await Task.Delay(1500);
+        await _vm.LoadAllArtAsync();
     }
 
     async Task RecommendAsync(IReadOnlyList<GameRow> rows)
@@ -90,12 +100,12 @@ public partial class GamesPage : UserControl
     {
         if (S is null) return;
         int version = all ? ++_planVersion : _planVersion;
-        var games = rows.Select(r => r.Game).ToList();
+        var work = rows.Select(r => (r.Game, Temp: r.TempExcluded.Count > 0 ? r.TempExcluded.ToList() : null)).ToList();
         var session = S;
         var plans = await Task.Run(() =>
         {
             var images = ProcessGuard.RunningImages();
-            return games.Select(g => session.PlanFor(g, runningImages: images)).ToList();
+            return work.Select(w => session.PlanFor(w.Game, w.Temp, null, images)).ToList();
         });
         if (version != _planVersion) return;
         for (int i = 0; i < rows.Count; i++) rows[i].Plan = plans[i];
@@ -108,8 +118,9 @@ public partial class GamesPage : UserControl
     void RefreshView()
     {
         _view?.Refresh();
-        int shown = _view?.Cast<object>().Count() ?? 0;
-        ShownText.Text = $"Showing {shown} of {_vm.Games.Count}";
+        var visible = _view?.Cast<GameRow>().ToList() ?? new List<GameRow>();
+        ShownText.Text = $"Showing {visible.Count} of {_vm.Games.Count}";
+        if (_vm.Selected is null || !visible.Contains(_vm.Selected)) _vm.Selected = visible.FirstOrDefault();
     }
 
     static readonly string[] OffsetTicks = { "Fastest", "-2", "-1", "Recommended", "+1", "+2", "Best looking" };
@@ -132,7 +143,7 @@ public partial class GamesPage : UserControl
         }
     }
 
-    static GameRow? RowOf(object sender) => (sender as FrameworkElement)?.Tag as GameRow;
+    static GameRow? RowOf(object sender) => (sender as FrameworkElement)?.Tag as GameRow ?? (sender as FrameworkElement)?.DataContext as GameRow;
 
     void UseRecommended_Click(object sender, RoutedEventArgs e) => _vm.GlobalOffset = 0;
     void ResetRow_Click(object sender, RoutedEventArgs e) => RowOf(sender)?.ResetStep();
@@ -182,6 +193,54 @@ public partial class GamesPage : UserControl
         Open($"steam://rungameid/{id}");
         Ui.Info(Owner, $"Steam is starting {r.Name}. Let it reach the main menu, close it, then press F5 (Rescan).", "Launch once");
     }
+
+    // ------------------------------------------------------------------ detail panel extras
+
+    void Page_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control && _vm.Selected is { CanApply: true } r)
+        {
+            ApplyRow_Click(new FrameworkElement { Tag = r }, new RoutedEventArgs());
+            e.Handled = true;
+        }
+    }
+
+    void More_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ContextMenu: { } m } b) { m.PlacementTarget = b; m.IsOpen = true; }
+    }
+
+    void ClearFilters_Click(object sender, RoutedEventArgs e)
+    {
+        _vm.Search = ""; _vm.StoreFilter = "All stores"; _vm.EngineFilter = "All engines"; _vm.OnlyCustom = false; _vm.OnlyPending = false; _vm.FilterIndex = 0;
+    }
+
+    void ChangeArt_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ContextMenu: { } m } b) { m.PlacementTarget = b; m.IsOpen = true; }
+    }
+
+    void ArtChoose_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm.Selected is not { } r) return;
+        var dlg = new Microsoft.Win32.OpenFileDialog { Title = "Choose an image for " + r.Name, Filter = "Images (*.jpg;*.jpeg;*.png;*.webp)|*.jpg;*.jpeg;*.png;*.webp", CheckFileExists = true };
+        if (dlg.ShowDialog(Owner) != true) return;
+        if (!r.ChooseArt(dlg.FileName)) Ui.Info(Owner, "That file is not a JPEG, PNG or WebP image (or it is over 8 MB).", "Change art");
+    }
+
+    async void ArtRefetch_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm.Selected is not { } r) return;
+        OptiGame.Core.Art.ArtService.Reset(r.Game);
+        await r.LoadArtAsync(_vm.Live.Settings.FetchArt, _vm.Live.Store.Data.SteamGridDbKey);
+    }
+
+    void AlwaysKeep_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is ChangeItem item && _vm.Selected is { } r) r.AlwaysKeep(item);
+    }
+
+    void Undo_Click(object sender, RoutedEventArgs e) => History_Click(sender, null);
 
     // ------------------------------------------------------------------ live actions
 

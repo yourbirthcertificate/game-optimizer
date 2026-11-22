@@ -6,7 +6,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>optigame</AssemblyName>
+    <AssemblyName>optigame-cli</AssemblyName>
     <RootNamespace>OptiGame.Cli</RootNamespace>
     <Product>OptiGame+</Product>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -14,13 +14,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <!-- gameopt.exe: the old command name, a copy of optigame.exe next to it (build and publish). -->
+  <!-- gameopt.exe: the old command name, a copy of optigame-cli.exe next to it (build and publish). -->
   <Target Name="GameoptAlias" AfterTargets="Build;Publish">
     <PropertyGroup>
       <AliasDir Condition="'$(PublishDir)' != '' AND '$(_IsPublishing)' == 'true'">$(PublishDir)</AliasDir>
       <AliasDir Condition="'$(AliasDir)' == ''">$(OutDir)</AliasDir>
     </PropertyGroup>
-    <Copy SourceFiles="$(AliasDir)optigame.exe" DestinationFiles="$(AliasDir)gameopt.exe" Condition="Exists('$(AliasDir)optigame.exe')" />
+    <Copy SourceFiles="$(AliasDir)optigame-cli.exe" DestinationFiles="$(AliasDir)gameopt.exe" Condition="Exists('$(AliasDir)optigame-cli.exe')" />
   </Target>
 
 </Project>

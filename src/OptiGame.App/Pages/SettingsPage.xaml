@@ -84,6 +84,19 @@
                 </Grid>
             </Border>
 
+            <TextBlock Text="Game art" Style="{StaticResource SectionTitle}" />
+            <c:SettingRow Title="Fetch game art online" Description="Steam's own image cache is always used. With this on, art for other games comes from Epic's catalog, GOG, Steam's image server (by id, or by exact title for games without one) and SteamGridDB. Off leaves Steam's cache and each game's own icon." IsOn="{Binding Settings.FetchArt, Mode=TwoWay}" />
+            <Border Style="{StaticResource Card}" Padding="16,12" Margin="0,4,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="260" /></Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                        <TextBlock Text="SteamGridDB key (optional)" />
+                        <TextBlock Text="A free key from steamgriddb.com widens coverage for games without a Steam id. Stored only on this PC." Style="{StaticResource Secondary}" />
+                    </StackPanel>
+                    <TextBox Grid.Column="1" Text="{Binding SteamGridKey, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Center" AutomationProperties.Name="SteamGridDB key" />
+                </Grid>
+            </Border>
+
             <TextBlock Text="Updates" Style="{StaticResource SectionTitle}" />
             <c:SettingRow Title="Check for updates automatically" Description="Once a day OptiGame+ asks GitHub for the latest release. Nothing about this PC is sent." IsOn="{Binding Settings.CheckForUpdates, Mode=TwoWay}" />
             <Border Style="{StaticResource Card}" Padding="16,12" Margin="0,4,0,0">

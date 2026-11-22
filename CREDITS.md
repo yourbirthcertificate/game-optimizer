@@ -1,6 +1,6 @@
 # Credits
 
-GameOptimizer is a personal tool that was written with AI and is licensed for
+OptiGame+ is a personal tool that was written with AI and is licensed for
 noncommercial use only. See [NOTICE](NOTICE) for the short version and
 [LICENSE](LICENSE) for the terms.
 
@@ -9,6 +9,14 @@ noncommercial use only. See [NOTICE](NOTICE) for the short version and
 - [Claude](https://www.anthropic.com/claude), an AI model from Anthropic, used through
   [Claude Code](https://claude.com/claude-code). It wrote the code and the documentation
   from the author's instructions.
+
+## Where OptiGame+ came from
+
+OptiGame+ merges two of the author's tools, both written by Claude for the same author and now
+under the same license: **GameOptimizer** (finds games and sets their graphics) and **GameClear**
+(the live resource clearer, which became the Dashboard and Apps pages). The Windows 11 look uses
+WPF's built-in Fluent theme, the Segoe Fluent Icons font that ships with Windows, and the
+Mica and dark title bar settings that Windows provides.
 
 ## Libraries
 
@@ -29,6 +37,15 @@ noncommercial use only. See [NOTICE](NOTICE) for the short version and
   on its [copyright page](https://www.pcgamingwiki.com/wiki/PCGamingWiki:Copyrights). The app
   reads these tables when it looks a game up and keeps a local copy in its cache. None of the
   wiki's content is stored in this repository.
+
+- **Game art.** Shown from Steam's local library cache, and fetched when allowed from Epic's
+  catalog, GOG's public product lookup, Steam's image server and SteamGridDB (with your own key).
+  The images belong to the games' publishers and are cached on this PC only.
+- **Laptop vendor apps.** `data/vendors.json` lists package names and install paths of apps such
+  as MSI Center and ASUS Armoury Crate so they can be opened. No code or data from them is used.
+- **Updates.** The installer is built with [Inno Setup](https://jrsoftware.org/isinfo.php) by
+  Jordan Russell and Martijn Laan (Inno Setup License); the updater reads GitHub's public
+  releases API.
 
 ## Data on this PC
 

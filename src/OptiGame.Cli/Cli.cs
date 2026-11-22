@@ -11,68 +11,68 @@ namespace OptiGame.Cli;
 public static partial class Cli
 {
     public const string Usage = """
-OptiGame+ command line (optigame.exe; gameopt.exe is the same program)
+OptiGame+ command line (optigame-cli.exe; gameopt.exe is the same program)
 
 Look around
-  optigame hw                          Hardware, displays (active and supported modes), PC-wide step
-  optigame scan [--offline]            Every game: engine, sources, step, status
-  optigame recommend [--game NAME] [--details] [--offline]
+  optigame-cli hw                          Hardware, displays (active and supported modes), PC-wide step
+  optigame-cli scan [--offline]            Every game: engine, sources, step, status
+  optigame-cli recommend [--game NAME] [--details] [--offline]
                                       Each game's recommended step, its basis and caveats
-  optigame why --game NAME             Why a game is skipped and what you can do
+  optigame-cli why --game NAME             Why a game is skipped and what you can do
 
 Optimize
-  optigame preview [options]           Show every change; nothing is written
-  optigame apply [options]             Back up, then write the changes
+  optigame-cli preview [options]           Show every change; nothing is written
+  optigame-cli apply [options]             Back up, then write the changes
     --game NAME      Only games whose name contains NAME (repeatable). Default: all games.
     --step STEP      Use this quality step instead of the slider choices (low..ultra or 0-5).
     --exclude ID     Leave this setting id out of this run only (repeatable; ids are shown in preview).
     --offline        Use cached requirement data only.
 
 Undo
-  optigame history [--run ID]          Optimize and restore runs; with --run, every change in it
-  optigame restore [--run ID] [--game NAME] [--full] [--apply]
+  optigame-cli history [--run ID]          Optimize and restore runs; with --run, every change in it
+  optigame-cli restore [--run ID] [--game NAME] [--full] [--apply]
                                       Preview (default) or apply a restore. Without --full only the
                                       optimizer's own changes are undone and later edits are kept.
 
 Choices (saved; the app shows the same)
-  optigame step --offset N             Shift every game N steps from its recommendation (-3 to 3)
-  optigame step --game NAME STEP|reset Set or clear a game's hand-set step
-  optigame game show NAME
-  optigame game set NAME key=value...  Per-game overrides (see settings below), plus profile=ID|inherit
+  optigame-cli step --offset N             Shift every game N steps from its recommendation (-3 to 3)
+  optigame-cli step --game NAME STEP|reset Set or clear a game's hand-set step
+  optigame-cli game show NAME
+  optigame-cli game set NAME key=value...  Per-game overrides (see settings below), plus profile=ID|inherit
                                       and steamappid=N|none (links a Steam app id for lookups)
-  optigame game keep NAME ID...        Always keep these setting ids for the game
-  optigame game unkeep NAME ID...|--all
-  optigame profile list | show ID | create NAME [--from ID] | rename ID NAME | delete ID
-  optigame profile set ID key=value... | default ID | assign NAME ID|none
-  optigame display list | gameopt display use \\.\DISPLAYn|main
+  optigame-cli game keep NAME ID...        Always keep these setting ids for the game
+  optigame-cli game unkeep NAME ID...|--all
+  optigame-cli profile list | show ID | create NAME [--from ID] | rename ID NAME | delete ID
+  optigame-cli profile set ID key=value... | default ID | assign NAME ID|none
+  optigame-cli display list | gameopt display use \\.\DISPLAYn|main
                                       The gaming display (Windows settings are never changed)
 
 Laptop and tools
-  optigame vendor [list]              Laptop maker apps found on this PC (MSI Center, Armoury Crate...)
-  optigame vendor open [NAME]         Open one (launch only; nothing in the app is changed)
-  optigame speccheck [--game NAME]    Find Game Spec Check; with --game, open it for that game
+  optigame-cli vendor [list]              Laptop maker apps found on this PC (MSI Center, Armoury Crate...)
+  optigame-cli vendor open [NAME]         Open one (launch only; nothing in the app is changed)
+  optigame-cli speccheck [--game NAME]    Find Game Spec Check; with --game, open it for that game
 
 Library
-  optigame library list | add PATH [--name NAME] | remove PATH
+  optigame-cli library list | add PATH [--name NAME] | remove PATH
                                       Manually added game folders (removing never deletes files)
 
 Rules
-  optigame rule list | validate [FILE...]
-  optigame rule snapshot --target PATH|HKCU/... [--format F] [--out FILE]
-  optigame rule diff BEFORE.json AFTER.json
-  optigame rule wizard --game NAME --target PATH|HKCU/... [--format F]
+  optigame-cli rule list | validate [FILE...]
+  optigame-cli rule snapshot --target PATH|HKCU/... [--format F] [--out FILE]
+  optigame-cli rule diff BEFORE.json AFTER.json
+  optigame-cli rule wizard --game NAME --target PATH|HKCU/... [--format F]
                                       Guided: snapshot, change one setting in the game, snapshot again,
                                       pick keys and values, validate, save a local rule, preview it
 
 Benchmarks (local only)
-  optigame bench import FILE --game NAME [--label before|after|TEXT] [--notes TEXT]
-  optigame bench list [--game NAME] | show ID | compare ID_A ID_B | prefer ID | delete ID
+  optigame-cli bench import FILE --game NAME [--label before|after|TEXT] [--notes TEXT]
+  optigame-cli bench list [--game NAME] | show ID | compare ID_A ID_B | prefer ID | delete ID
 
 Preferences
-  optigame prefs export FILE [--no-rules]
-  optigame prefs import FILE [--replace] [--take-imported] [--map OLD=NEW]... [--apply]
+  optigame-cli prefs export FILE [--no-rules]
+  optigame-cli prefs import FILE [--replace] [--take-imported] [--map OLD=NEW]... [--apply]
                                       Shows what would change; --apply writes it
-  optigame shared-cache [add DIR | remove DIR]
+  optigame-cli shared-cache [add DIR | remove DIR]
 
 Global option: --data-dir FOLDER keeps every setting, backup and cache in FOLDER (default %LOCALAPPDATA%\GameOpt).
 
@@ -114,7 +114,7 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
                 "shared-cache" => SharedCache(argv),
                 "vendor" => await Vendor(argv),
                 "speccheck" => await SpecCheck(argv),
-                _ => Fail($"Unknown command '{cmd}'. Run 'optigame help'."),
+                _ => Fail($"Unknown command '{cmd}'. Run 'optigame-cli help'."),
             };
         }
         catch (ArgumentException e) { return Fail(e.Message); }
@@ -139,7 +139,7 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
 
     internal static void NoMore(List<string> argv)
     {
-        if (argv.Count > 0) throw new ArgumentException($"Unexpected argument '{argv[0]}'. Run 'optigame help'.");
+        if (argv.Count > 0) throw new ArgumentException($"Unexpected argument '{argv[0]}'. Run 'optigame-cli help'.");
     }
 
     internal static OptimizerSession Load(bool quietNotes = false)
