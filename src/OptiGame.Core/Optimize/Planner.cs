@@ -32,7 +32,8 @@ public static partial class Planner
 
         if (rule is null || !rule.ReplaceEngineHandler)
         {
-            switch (g.Engine)
+            if (IsEldenRing(g)) EldenRing(plan, req);
+            else switch (g.Engine)
             {
                 case GameEngine.Unreal: Unreal(plan, hw, req, rule); break;
                 case GameEngine.Unity: Unity(plan, req); break;

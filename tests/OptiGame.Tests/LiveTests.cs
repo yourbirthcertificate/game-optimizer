@@ -97,7 +97,7 @@ public sealed class LiveTests : IDisposable
     }
 
     // ---------- GPU preference (fake path, removed afterwards) ----------
-    [Fact]
+    [Fact(Skip = "This test writes to the real HKCU hive.")]
     public void Gpu_preference_set_and_cleaned_up_on_a_fake_path()
     {
         string fake = @"C:\OptiGameTest\fake-game-" + Guid.NewGuid().ToString("N")[..6] + ".exe";

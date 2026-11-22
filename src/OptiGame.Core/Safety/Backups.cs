@@ -360,6 +360,18 @@ public static class Applier
             keys.Add(new KeyUndo(setting, cur, c.OldRaw, c.NewRaw, s));
             return s;
         }
+        if (FormatHandlers.Find(format) is { } handler)
+        {
+            var document = handler.Read(current);
+            foreach (var change in changes)
+            {
+                if (Decide(change.Setting, document.GetRaw(change.Locator), change) != KeyState.Revert) continue;
+                if (change.OldRaw is null || !document.TrySet(change.Locator, change.OldRaw))
+                    throw new FormatException("The recorded setting could not be restored safely.");
+            }
+            return (document.ToBytes(), keys);
+        }
+
         switch (format)
         {
             case "ini":
