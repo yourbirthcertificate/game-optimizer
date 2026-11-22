@@ -10,7 +10,7 @@ One JSON file per game. Files directly in this folder are built into the program
 built-in one. Comments (`//`) and trailing commas are allowed.
 
 The quickest way to make one is the rule wizard (Tools > Rule wizard, or
-`gameopt rule wizard --game NAME --target PATH`). To check a file: `gameopt rule validate FILE`.
+`optigame-cli rule wizard --game NAME --target PATH`). To check a file: `optigame-cli rule validate FILE`.
 The JSON schema is [`rule.schema.json`](rule.schema.json).
 
 ```jsonc
@@ -64,7 +64,7 @@ only the current user's registry can be changed.
 - `json`: a dotted path, such as `graphics.shadows`.
 - `kv`: the key name, such as `setting.mat_vsync`. It must appear once in the file.
 - `registry`: the value name. DWORD, QWORD and string values can be set. Unity names end in
-  `_h` plus a hash; copy them from `gameopt rule snapshot`.
+  `_h` plus a hash; copy them from `optigame-cli rule snapshot`.
 
 A key is only changed if it already exists with a value of the same kind. Anything else is
 listed as skipped in the preview.
@@ -101,7 +101,7 @@ right category on their own; give others one with `categories`: `resolution`, `d
 
 ## Checking a rule
 
-`gameopt rule validate FILE` reports unknown variables, lists that are not 6 values long, wrong
+`optigame-cli rule validate FILE` reports unknown variables, lists that are not 6 values long, wrong
 value types for a format, keys listed twice, files listed twice, bad paths and unknown
-categories. Then `gameopt preview --game "<name>"` lists every change as `old -> new` and every
+categories. Then `optigame-cli preview --game "<name>"` lists every change as `old -> new` and every
 key it left alone, with the reason. Nothing is written until you apply.

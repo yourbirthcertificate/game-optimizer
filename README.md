@@ -1,15 +1,33 @@
-# GameOptimizer
+# OptiGame+
 
-A Windows app that finds the games installed on your PC, recommends graphics settings for
-each one, shows every change before writing it, applies it with a backup, and lets you undo
-it. It works on games that GPU vendor tools do not know about, because it reads each game's
-engine settings directly instead of relying on a list of supported titles.
+One Windows app for gaming laptops. It finds the games installed on your PC, recommends graphics
+settings for each one, shows every change before writing it, applies it with a backup and lets
+you undo it. While you play it also clears resources for the game that is running: it trims
+background memory, moves background apps to efficiency mode and raises the game's priority, and
+puts everything back when the game closes. It works on games that GPU vendor tools do not know
+about, because it reads each game's engine settings directly instead of relying on a list of
+supported titles.
 
-GameOptimizer is the sister project of
+OptiGame+ is **GameOptimizer and GameClear merged into one app**. GameOptimizer found games and
+set their graphics; GameClear (the live resource clearer) is now the Dashboard and Apps pages.
+They share one game list, one hardware profile and one Windows 11 look.
+
+OptiGame+ is the sister project of
 [Game Spec Check](https://github.com/yourbirthcertificate/game-spec-check), which answers
-whether this PC can run a game. Game Spec Check tells you if a game will run; GameOptimizer
-sets it up to run well. They share the graphics card table, and GameOptimizer reuses the
+whether this PC can run a game. Each game has a **Can this PC run it?** button that opens Game
+Spec Check on that game. They share the graphics card table, and OptiGame+ reuses the
 requirement lookups Game Spec Check has already cached.
+
+## Screenshots
+
+Light and dark follow Windows. Paths in the app are shown as `%LOCALAPPDATA%` and `%USERPROFILE%`.
+
+| | Light | Dark |
+|---|---|---|
+| Dashboard | ![Dashboard, light](docs/screenshots/dashboard-light.png) | ![Dashboard, dark](docs/screenshots/dashboard-dark.png) |
+| Games | ![Games, light](docs/screenshots/games-light.png) | ![Games, dark](docs/screenshots/games-dark.png) |
+| Apps | ![Apps, light](docs/screenshots/apps-light.png) | ![Apps, dark](docs/screenshots/apps-dark.png) |
+| Settings | ![Settings, light](docs/screenshots/settings-light.png) | ![Settings, dark](docs/screenshots/settings-dark.png) |
 
 ## About this project
 
@@ -17,6 +35,73 @@ requirement lookups Game Spec Check has already cached.
 - **Written with AI.** The code was written by Claude, an AI model from Anthropic, through Claude Code. It has had no professional review or security audit, and some of its choices will be wrong for some games.
 - **Noncommercial use only.** It is licensed under the PolyForm Noncommercial License 1.0.0. Personal, hobby and study use is fine. Commercial use is not.
 - **No donations.** The author is not accepting donations or sponsorship.
+
+## The pages
+
+Current version: see [CHANGELOG.md](CHANGELOG.md).
+
+| Page | What it does |
+|---|---|
+| **Dashboard** | The front screen: a big **Boost** button, Auto-boost switch, live memory, processor, graphics and power meters, and smart suggestions (memory pressure, a hot GPU, running on battery, power plan, which graphics chip a game uses). |
+| **Apps** | What could be closed to free memory. Closing is always your click, politely first (no force-kill unless you turn it on), with optional re-open afterwards. Browsers and documents are never pre-ticked and ask first. |
+| **Games** | One list for Steam, Epic, GOG and folders you add. A list on the left, the selected game on the right: art, quality steps with the recommended one marked, the exact changes with tick boxes, frame rate and display settings, **Boost**, **Use RTX GPU**, **Can this PC run it?**, and **Apply** with **Undo**. |
+| **Settings** | Boost options, your laptop's own app (MSI Center and others), Game Spec Check, game art, updates, history and backups, profiles, benchmarks, the rule wizard, and import or export of your choices. |
+
+### What auto-boost does (and never does)
+
+Only reversible things: it trims background memory, moves background apps to efficiency mode
+(EcoQoS and below-normal priority) and raises the game to High (never Realtime). All of it is
+restored when the game closes. It never closes an app, never switches the power plan, and never
+touches Windows components, drivers, anti-cheat, launchers, voice chat, overlays or developer
+tools. The power plan and the per-game graphics-chip preference are one-click suggestions.
+Standby-memory purging is administrator-only and off by default. What it learns stays on this PC:
+un-tick a suggestion twice and it is kept; close a reviewed app twice and it is suggested.
+
+A game is detected with confidence when it runs from a library folder, is a `-Win64-Shipping`
+build, is on the built-in list, or is on your list. A fullscreen app is only a "likely game"
+and is not boosted unless you turn that on.
+
+### Your laptop's own app
+
+OptiGame+ reads the maker and model from the BIOS (`HKLM\HARDWARE\DESCRIPTION\System\BIOS`) and
+looks them up in [`data/vendors.json`](data/vendors.json): MSI Center, ASUS Armoury Crate,
+Lenovo Vantage and Legion Space, HP OMEN Gaming Hub, Dell and Alienware Command Center, Acer
+PredatorSense and NitroSense, Gigabyte Control Center, Razer Synapse, and the NVIDIA App. It
+finds the installed app by its Store package family or its install path and shows an **Open**
+button and a short cooling tip; the "GPU is running hot" suggestion points at that app. Add or
+replace entries in `%LOCALAPPDATA%\GameOptendors.json`. For an unknown brand, **Choose your
+vendor app** remembers the program you pick. OptiGame+ only opens these apps: they have no public
+interface to drive their fan or performance modes.
+
+### Game art
+
+Each game shows its art. Order: an image you chose, the cache, Steam's own library cache on this
+PC, then (with **Fetch game art online** on) Epic's catalog image, GOG's product lookup, Steam's
+image server by app id, a Steam store search by exact title for games with no id, and SteamGridDB
+if you add a free key. The last resort is the game's own icon. Only ids go out, or the title for a
+game that has none, and images are accepted only from those services' hosts.
+
+### Updates and install
+
+The setup program (`OptiGame-Setup-<version>.exe`) installs for the current user without
+administrator rights to `%LOCALAPPDATA%\Programs\OptiGame`, with a Start menu entry and optional
+desktop shortcut and **Start with Windows** (off by default). Once a day (switch off in Settings)
+OptiGame+ asks GitHub's releases for a newer version; nothing about the PC is sent. **Install
+update** downloads the setup, checks its SHA-256 against the digest GitHub lists, closes the app,
+installs and starts it again. A download without a digest, or from anywhere but this project's
+releases, is refused. Build it yourself with `installeruild.ps1` (needs Inno Setup 6).
+
+### Coming from GameClear or GameOptimizer
+
+- Your **backups, history, profiles, benchmarks and cache** stay where they were:
+  `%LOCALAPPDATA%\GameOpt`. Nothing is moved, so every earlier run can still be undone.
+- GameClear's `%AppData%\GameClear\data.json` (settings, learned apps, your game list) is read once
+  into `%LOCALAPPDATA%\GameOpt\live.json` the first time OptiGame+ starts. The old file is left alone.
+- Quit GameClear before running OptiGame+ (both would boost). If GameClear's **Start with Windows**
+  was on, switch it off there; OptiGame+ has its own setting.
+- The command line is now `optigame` (`gameopt` is the same program). `--data-dir FOLDER` keeps
+  everything in another folder, which is how the tests run.
+- Testing the app on a PC where you are playing: start it with `--no-auto --data-dir <temp folder>`.
 
 ## How it works
 
@@ -107,7 +192,7 @@ Built in:
 | Competitive | Two steps below the recommendation, no cap where supported, exclusive fullscreen, VSync off |
 | Graphics only | Recommended quality; resolution, display mode, VSync and cap kept as the game has them |
 
-Create, duplicate, rename, edit and delete your own in **Preferences > Profiles**, set one as
+Create, duplicate, rename, edit and delete your own in **Settings > Game optimizer tools > Profiles**, set one as
 the default, or assign one to a game in its Settings panel.
 
 Precedence, highest first: what you set in a game's own panel, the profile assigned to the
@@ -117,10 +202,13 @@ offset-based profile by -3 to +3 steps. Fixed-step profiles ignore that slider.
 
 ## Library
 
-Search by name, filter by store, engine, status, your own choices or changes waiting, and tick
-games to preview or optimize just those. The footer says exactly what each button covers:
-"Preview/Optimize selected (N)" acts on ticked games; "Optimize all supported (N)" acts on
-every game the tool can change, whatever the filters show. Each starts with a preview.
+The **Games** page is a list with the selected game beside it. Search by name, switch between
+**Can change**, **Skipped** and **All**, filter by store and engine, or show only games with
+changes waiting or your own choices. Hover a row to tick it; ticking two or more shows
+**Preview N** and **Optimize N** under the list, and the **...** menu has **Optimize all supported
+games**. Each starts with a preview. A single game shows its changes in the panel itself, with a
+tick box each, so you read exactly what will be written before pressing **Apply**; **Undo** reopens
+the restore preview for its last run.
 
 Games the tool cannot change say why: no handler or rule, settings not created yet, settings
 location not found, unsupported format, ambiguous settings, or game running. Where it helps,
@@ -132,7 +220,7 @@ a similar name.
 
 ## History and restore
 
-**Tools > History and restore** lists every run. For each one you can see the changes, pick a
+**Settings > Game optimizer tools > History and restore** lists every run. For each one you can see the changes, pick a
 game or the whole run, and preview a restore in one of two modes:
 
 - **Undo the optimizer's changes only** (default). Only the keys the optimizer changed are put
@@ -147,7 +235,7 @@ run while a game is open or when a file changed after the restore preview.
 
 ## Benchmarks
 
-**Tools > Benchmarks** imports frame-time captures, without any in-game overlay:
+**Settings > Game optimizer tools > Benchmarks** imports frame-time captures, without any in-game overlay:
 
 - GameOptimizer CSV: a header row with a column named `frametime_ms`, one row per frame, in
   milliseconds. Other columns are ignored.
@@ -165,19 +253,19 @@ Comparing two results flags different durations, resolutions, caps or hardware. 
 ## Rules and the rule wizard
 
 Game-specific knowledge lives in JSON rules: built-in ones in [`rules/`](rules/README.md), your
-own in `%LOCALAPPDATA%\GameOpt\rules`. **Tools > Rule wizard** (or `gameopt rule wizard`)
+own in `%LOCALAPPDATA%\GameOpt\rules`. **Settings > Game optimizer tools > Rule wizard** (or `optigame-cli rule wizard`)
 creates one: pick the settings file or registry key, take a "before" snapshot, change one
 setting in the game and close it, take an "after" snapshot, pick the keys that changed, give
 their values (one for every step, or six), check, save, and preview. Snapshots only read.
 Two snapshots show two values, so the wizard never invents the other steps.
 
-`gameopt rule validate` checks rules against the same rules as the app; there is also a JSON
+`optigame-cli rule validate` checks rules against the same rules as the app; there is also a JSON
 schema at [`rules/rule.schema.json`](rules/rule.schema.json). See
 [CONTRIBUTING.md](CONTRIBUTING.md) for sending a rule for a game.
 
 ## Preferences export and import
 
-**Preferences > Export** writes a versioned file with your profiles, the All games setting,
+**Settings > Game optimizer tools > Export preferences** writes a versioned file with your profiles, the All games setting,
 per-game choices, kept settings and your rules. Folders and display names go in a separate
 machine section. Game saves, backups, raw registry data and benchmarks are never included.
 **Import** shows what would be added, replaced or in conflict before anything is saved, with an
@@ -208,34 +296,39 @@ the parsed file back reproduces the original byte for byte.
 ## What it sends over the internet
 
 Only Steam app ids, to Steam's store API and PCGamingWiki, to read published requirements for
-games the tool can change. Answers are cached for a week in `%LOCALAPPDATA%\GameOpt\cache`, and
-Game Spec Check's cache is read too (`gameopt shared-cache add <checkout>\.cache` for a source
+games the tool can change. Game art (switch off in Settings) sends the Steam app id, the GOG
+product id, or, for a game with neither, its exact title to Steam's store search (and to
+SteamGridDB only if you set a key). The update check is one request to GitHub's releases API. Answers are cached for a week in `%LOCALAPPDATA%\GameOpt\cache`, and
+Game Spec Check's cache is read too (`optigame-cli shared-cache add <checkout>\.cache` for a source
 checkout). Nothing about your hardware is sent. Without a connection the tool keeps working with
 cached data and falls back to the PC-wide step. `--offline` skips lookups on any command.
 
 ## Running it
 
-Download `GameOptimizer.exe` (the app) or `gameopt.exe` (command line) from the Releases page.
-They need Windows 10 or 11 and nothing else. The exe is not code-signed, so Windows may show
-"Windows protected your PC" the first time: choose "More info", then "Run anyway".
+Download `OptiGame-Setup-<version>.exe` from the Releases page and run it. It installs for your
+user (no administrator needed), adds a Start menu entry, and updates itself from then on.
+`OptiGame.exe` and `optigame-cli.exe` are also attached as plain files. They need Windows 10 or
+11 and nothing else (the .NET runtime is included). The files are not code-signed, so Windows may
+show "Windows protected your PC" the first time: choose "More info", then "Run anyway".
 
 ### Command line
 
-`gameopt help` lists everything. The main commands:
+`optigame-cli help` lists everything (`gameopt` is the same program under its old name). The main commands:
 
 ```
-gameopt hw | scan | recommend [--game NAME] [--details] | why --game NAME
-gameopt preview|apply [--game NAME]... [--step STEP] [--exclude SETTING_ID]... [--offline]
-gameopt history [--run ID]
-gameopt restore [--run ID] [--game NAME] [--full] [--apply]
-gameopt step --offset N | step --game NAME STEP|reset
-gameopt game show|set|keep|unkeep NAME ...
-gameopt profile list|show|create|rename|delete|set|default|assign ...
-gameopt display list | display use \\.\DISPLAYn|main
-gameopt library list|add PATH|remove PATH
-gameopt rule list|validate|snapshot|diff|wizard ...
-gameopt bench import|list|show|compare|prefer|delete ...
-gameopt prefs export FILE | prefs import FILE [--replace] [--take-imported] [--map OLD=NEW] [--apply]
+optigame-cli hw | scan | recommend [--game NAME] [--details] | why --game NAME
+optigame-cli preview|apply [--game NAME]... [--step STEP] [--exclude SETTING_ID]... [--offline]
+optigame-cli history [--run ID]
+optigame-cli restore [--run ID] [--game NAME] [--full] [--apply]
+optigame-cli step --offset N | step --game NAME STEP|reset
+optigame-cli game show|set|keep|unkeep NAME ...
+optigame-cli profile list|show|create|rename|delete|set|default|assign ...
+optigame-cli display list | display use \\.\DISPLAYn|main
+optigame-cli library list|add PATH|remove PATH
+optigame-cli rule list|validate|snapshot|diff|wizard ...
+optigame-cli bench import|list|show|compare|prefer|delete ...
+optigame-cli prefs export FILE | prefs import FILE [--replace] [--take-imported] [--map OLD=NEW] [--apply]
+optigame-cli vendor [list] | vendor open [NAME]       optigame-cli speccheck [--game NAME]
 ```
 
 `preview` and `restore` without `--apply` never write anything.
@@ -246,10 +339,11 @@ You need the .NET 10 SDK.
 
 ```
 dotnet test
-dotnet run --project src/GameOptimizer.App
-dotnet run --project src/GameOptimizer.Cli -- scan
-dotnet publish src/GameOptimizer.App -c Release -r win-x64
-dotnet publish src/GameOptimizer.Cli -c Release -r win-x64
+dotnet run --project src/OptiGame.App
+dotnet run --project src/OptiGame.Cli -- scan
+dotnet publish src/OptiGame.App -c Release -r win-x64
+dotnet publish src/OptiGame.Cli -c Release -r win-x64
+pwsh installer/build.ps1        # app, command line tool and the setup program (needs Inno Setup 6)
 ```
 
 ## Known limits

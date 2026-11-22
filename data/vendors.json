@@ -1,0 +1,87 @@
+{
+  "$comment": "Laptop vendor apps OptiGame+ can open. Edit a copy at %LOCALAPPDATA%\\GameOpt\\vendors.json: an entry with the same id replaces the shipped one, new ids are added. OptiGame+ only launches these apps; it never drives their settings.",
+  "version": 1,
+  "vendors": [
+    {
+      "id": "msi", "kind": "maker",
+      "match": { "manufacturer": ["micro-star", "msi"] },
+      "apps": [
+        { "name": "MSI Center", "packageFamily": "9426MICRO-STARINTERNATION.MSICenter_kzh8wxbdkxb8p", "appId": "App",
+          "exe": ["%ProgramFiles(x86)%\\MSI\\MSI Center\\MSI Center.exe", "%ProgramFiles%\\MSI\\MSI Center\\MSI Center.exe"] }
+      ],
+      "tip": "In MSI Center, open the scenario or fan-mode page and pick the performance or Cooler Boost mode before a long session. Keep the laptop plugged in."
+    },
+    {
+      "id": "asus", "kind": "maker",
+      "match": { "manufacturer": ["asus"] },
+      "apps": [
+        { "name": "Armoury Crate", "packageFamily": "B9ECED6F.ArmouryCrate_qmba6cd70vzyy",
+          "exe": ["%ProgramFiles%\\ASUS\\ARMOURY CRATE Service\\ArmouryCrate.exe"] }
+      ],
+      "tip": "In Armoury Crate, choose the Turbo operating mode (or Performance) and keep the laptop plugged in."
+    },
+    {
+      "id": "lenovo", "kind": "maker",
+      "match": { "manufacturer": ["lenovo"] },
+      "apps": [
+        { "name": "Legion Space", "packageFamily": "E046963F.LegionSpace_k1h2ywk1493x8" },
+        { "name": "Lenovo Vantage", "packageFamily": "E046963F.LenovoCompanion_k1h2ywk1493x8" }
+      ],
+      "tip": "Press Fn+Q to cycle the thermal mode, or choose Performance in Lenovo Vantage or Legion Space. Keep the laptop plugged in."
+    },
+    {
+      "id": "hp", "kind": "maker",
+      "match": { "manufacturer": ["hp", "hewlett"] },
+      "apps": [
+        { "name": "OMEN Gaming Hub", "packageFamily": "AD2F1837.OMENCommandCenter_v10z8vjag6ke6" }
+      ],
+      "tip": "In OMEN Gaming Hub, set the performance control to Performance and turn the fan boost on if the laptop runs hot."
+    },
+    {
+      "id": "dell", "kind": "maker",
+      "match": { "manufacturer": ["dell", "alienware"] },
+      "apps": [
+        { "name": "Alienware Command Center", "packageFamily": "DellInc.AlienwareCommandCenter_htrsf667h5kn2" },
+        { "name": "Dell Optimizer", "packageFamily": "DellInc.DellOptimizer_htrsf667h5kn2" }
+      ],
+      "tip": "In Alienware Command Center, pick the Performance thermal profile, or use Overdrive for full fans."
+    },
+    {
+      "id": "acer", "kind": "maker",
+      "match": { "manufacturer": ["acer"] },
+      "apps": [
+        { "name": "PredatorSense", "packageFamily": "AcerIncorporated.PredatorSense_48frkmn4z8aw4",
+          "exe": ["%ProgramFiles%\\PredatorSense\\PredatorSense.exe"] },
+        { "name": "NitroSense", "packageFamily": "AcerIncorporated.NitroSense_48frkmn4z8aw4" }
+      ],
+      "tip": "In PredatorSense or NitroSense, set the fan to Max (or Turbo mode) while you play."
+    },
+    {
+      "id": "gigabyte", "kind": "maker",
+      "match": { "manufacturer": ["gigabyte", "aorus"] },
+      "apps": [
+        { "name": "Gigabyte Control Center", "exe": ["%ProgramFiles%\\GIGABYTE\\Control Center\\GCC.exe", "%ProgramFiles%\\GIGABYTE\\Control Center\\GigabyteControlCenter.exe"] }
+      ],
+      "tip": "In Gigabyte Control Center, choose the Gaming or Turbo power mode and the max fan profile."
+    },
+    {
+      "id": "razer", "kind": "maker",
+      "match": { "manufacturer": ["razer"] },
+      "apps": [
+        { "name": "Razer Synapse", "exe": [
+            "%ProgramFiles%\\Razer\\RazerAppEngine\\RazerAppEngine.exe",
+            "%ProgramFiles(x86)%\\Razer\\Synapse3\\WPFUI\\Framework\\Razer Synapse 3 Host\\Razer Synapse 3.exe" ] }
+      ],
+      "tip": "In Razer Synapse, open the Performance tab and choose Boost or Custom with the fans on Max."
+    },
+    {
+      "id": "nvidia", "kind": "gpu",
+      "match": { "gpu": ["nvidia"] },
+      "apps": [
+        { "name": "NVIDIA App",
+          "exe": ["%ProgramFiles%\\NVIDIA Corporation\\NVIDIA app\\CEF\\NVIDIA App.exe"] }
+      ],
+      "tip": "The NVIDIA App updates drivers and has per-game graphics settings and the overlay."
+    }
+  ]
+}

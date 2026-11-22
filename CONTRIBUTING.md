@@ -14,12 +14,12 @@ For each key in the rule:
    build you checked.
 2. **That it is the setting.** A before/after pair: change only that setting in the game's own
    menu, save, close the game, and capture the file again. The rule wizard does this and shows
-   the difference (`gameopt rule snapshot` and `gameopt rule diff` do the same on the command line).
+   the difference (`optigame-cli rule snapshot` and `optigame-cli rule diff` do the same on the command line).
 3. **What each value means.** Say which value the game writes for each menu choice. A per-step
    list (`[0, 1, 1, 2, 3, 3]`) needs every value seen in the game, not filled in by pattern.
    If you only know one value, use one value.
-4. **That the game accepts it.** Apply the rule with `gameopt apply --game NAME`, start the game,
-   and check the menu shows what the preview said. Then restore with `gameopt restore --apply`
+4. **That the game accepts it.** Apply the rule with `optigame-cli apply --game NAME`, start the game,
+   and check the menu shows what the preview said. Then restore with `optigame-cli restore --apply`
    and check the game starts normally.
 
 For "no frame cap", only set `fpsUncappedValue` if you saw what the game writes when its own
@@ -29,12 +29,12 @@ menu is set to unlimited.
 
 Open a pull request (or an issue if you prefer) with:
 
-- the rule file in `rules/`, passing `gameopt rule validate`;
+- the rule file in `rules/`, passing `optigame-cli rule validate`;
 - `gameVersion`, `source` (how you found the values), `author` and `verified` (the date) filled in;
-- the before/after evidence, as text. The output of `gameopt rule diff BEFORE.json AFTER.json`
+- the before/after evidence, as text. The output of `optigame-cli rule diff BEFORE.json AFTER.json`
   is enough. Remove anything personal first (account names, user ids, paths with your
   username); keep only the keys that matter;
-- for a new format quirk, a small synthetic test file in `tests/GameOptimizer.Tests/fixtures`
+- for a new format quirk, a small synthetic test file in `tests/OptiGame.Tests/fixtures`
   rather than your real save.
 
 Please do not send real save files, full registry exports or benchmark captures; they can hold
@@ -42,7 +42,7 @@ personal data and are not needed.
 
 ## Games that need evidence
 
-`gameopt scan` and the app list every game the tool cannot change, with the reason. The usual
+`optigame-cli scan` and the app list every game the tool cannot change, with the reason. The usual
 cases, each needing someone with the game to collect the evidence above:
 
 - Games on their own engines, which have no handler at all.

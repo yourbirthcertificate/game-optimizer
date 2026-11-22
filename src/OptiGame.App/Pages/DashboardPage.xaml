@@ -1,0 +1,106 @@
+<UserControl x:Class="OptiGame.App.Pages.DashboardPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="36,24,36,32" MaxWidth="1040">
+            <TextBlock Text="Dashboard" Style="{StaticResource PageTitle}" />
+            <TextBlock Text="Live view of your laptop while you play. Boost clears resources for the game; nothing is closed without your click." Style="{StaticResource Secondary}" />
+
+            <!-- hero: the boost -->
+            <Border Style="{StaticResource Card}" Padding="24" Margin="0,18,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="64" Height="64" CornerRadius="32" Background="{DynamicResource AccentFillColorDefaultBrush}" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding HeroGlyph}" Style="{StaticResource IconText}" FontSize="30" HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="20,0,20,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding HeroTitle}" FontFamily="{StaticResource Display}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding HeroDetail}" Style="{StaticResource Secondary}" FontSize="13" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                        <Button Content="{Binding BoostText}" Style="{DynamicResource AccentButtonStyle}" MinWidth="150" Height="42" FontSize="15"
+                                IsEnabled="{Binding BoostEnabled}" Click="Boost_Click" HorizontalAlignment="Right" />
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
+                            <TextBlock Text="Auto-boost" Style="{StaticResource Secondary}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <ToggleButton Style="{StaticResource Switch}" IsChecked="{Binding Settings.AutoBoost, Mode=TwoWay}" AutomationProperties.Name="Auto-boost" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- meters -->
+            <UniformGrid Columns="4" Margin="-4,8,-4,0">
+                <Border Style="{StaticResource Card}" Margin="4">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE950;" Style="{StaticResource IconText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" /><TextBlock Text="Memory" Style="{StaticResource Secondary}" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                        <TextBlock Text="{Binding Dash.RamTitle}" Style="{StaticResource BigValue}" FontSize="19" Margin="0,10,0,10" />
+                        <ProgressBar Style="{StaticResource Meter}" Value="{Binding Dash.RamPct, Mode=OneWay}" Tag="{Binding Dash.RamLevel}" />
+                        <TextBlock Text="{Binding Dash.RamSub}" Style="{StaticResource Secondary}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="4">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE9D9;" Style="{StaticResource IconText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" /><TextBlock Text="Processor" Style="{StaticResource Secondary}" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                        <TextBlock Text="{Binding Dash.CpuTitle}" Style="{StaticResource BigValue}" FontSize="19" Margin="0,10,0,10" />
+                        <ProgressBar Style="{StaticResource Meter}" Value="{Binding Dash.CpuPct, Mode=OneWay}" Tag="{Binding Dash.CpuLevel}" />
+                        <TextBlock Text="{Binding Dash.CpuSub}" Style="{StaticResource Secondary}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="4" Visibility="{Binding Dash.GpuVisible, Converter={StaticResource BoolToVis}}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7F4;" Style="{StaticResource IconText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" /><TextBlock Text="Graphics" Style="{StaticResource Secondary}" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                        <TextBlock Text="{Binding Dash.GpuTitle}" Style="{StaticResource BigValue}" FontSize="19" Margin="0,10,0,10" />
+                        <ProgressBar Style="{StaticResource Meter}" Value="{Binding Dash.GpuPct, Mode=OneWay}" Tag="{Binding Dash.GpuLevel}" />
+                        <TextBlock Text="{Binding Dash.GpuSub}" Style="{StaticResource Secondary}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="4">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Dash.PowerGlyph}" Style="{StaticResource IconText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" /><TextBlock Text="Power" Style="{StaticResource Secondary}" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                        <TextBlock Text="{Binding Dash.PowerTitle}" Style="{StaticResource BigValue}" FontSize="19" Margin="0,10,0,10" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Dash.PowerSub}" Style="{StaticResource Secondary}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <TextBlock Text="Smart suggestions" Style="{StaticResource SectionTitle}" />
+            <ItemsControl ItemsSource="{Binding Tips}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="16,14">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="36" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Glyph}" Style="{StaticResource TipGlyph}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Secondary}" FontSize="13" Margin="0,3,0,0" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="{Binding ActionText}" Click="TipAction_Click" VerticalAlignment="Center"
+                                        Visibility="{Binding HasAction, Converter={StaticResource BoolToVis}}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- the laptop maker's own control app -->
+            <Border Style="{StaticResource Card}" Margin="0,4,0,0" Padding="16,14" Visibility="{Binding HasVendor, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="36" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xE770;" Style="{StaticResource TipGlyph}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                    <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                        <TextBlock Text="{Binding VendorHeadline}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding VendorTipText}" Style="{StaticResource Secondary}" FontSize="13" Margin="0,3,0,0" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Content="{Binding VendorOpenText}" Click="OpenVendor_Click" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+            <TextBlock Text="{Binding Lifetime}" Style="{StaticResource Secondary}" Margin="2,14,0,0" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

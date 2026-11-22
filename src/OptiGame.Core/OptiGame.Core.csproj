@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\rules\*.json" Exclude="..\..\rules\*.schema.json" LogicalName="OptiGame.Core.rules.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\data\gpus.json" LogicalName="OptiGame.Core.data.gpus.json" />
+    <EmbeddedResource Include="..\..\data\vendors.json" LogicalName="OptiGame.Core.data.vendors.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OptiGame.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AssetsTools.NET" Version="3.0.5" />
+    <PackageReference Include="System.Management" Version="11.0.0" />
+  </ItemGroup>
+
+</Project>

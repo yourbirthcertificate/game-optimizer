@@ -20,19 +20,27 @@ jobs:
           dotnet-version: "10.0.x"
       - name: Unit tests
         run: dotnet test -c Release
-      - name: Publish single-file exes
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+      - name: Publish the app and command line tool, then build the setup program
+        shell: pwsh
+        run: ./installer/build.ps1
+      - name: Smoke test the command line
         shell: pwsh
         run: |
-          dotnet publish src/GameOptimizer.App -c Release -r win-x64 -o dist
-          dotnet publish src/GameOptimizer.Cli -c Release -r win-x64 -o dist
-          Copy-Item LICENSE, NOTICE, CREDITS.md dist/
-      - name: Smoke test the command line
-        run: dist/gameopt.exe --help
+          dist/optigame-cli.exe --help
+          dist/gameopt.exe --help
+      - name: Gather files
+        shell: pwsh
+        run: Copy-Item LICENSE, NOTICE, CREDITS.md dist/
       - uses: actions/upload-artifact@v4
         with:
-          name: GameOptimizer
+          name: OptiGame
           path: |
-            dist/GameOptimizer.exe
+            dist/OptiGame-Setup-*.exe
+            dist/OptiGame.exe
+            dist/optigame-cli.exe
             dist/gameopt.exe
             dist/LICENSE
             dist/NOTICE
@@ -49,10 +57,11 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: GameOptimizer
+          name: OptiGame
           path: dist
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "GameOptimizer $GITHUB_REF_NAME" --generate-notes
+          # The setup program must be attached: the in-app updater looks for OptiGame-Setup-*.exe and checks its digest.
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "OptiGame+ $GITHUB_REF_NAME" --generate-notes

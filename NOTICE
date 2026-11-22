@@ -1,4 +1,4 @@
-GameOptimizer
+OptiGame+
 https://github.com/yourbirthcertificate/game-optimizer
 
 Required Notice: Copyright (c) 2026 yourbirthcertificate (https://github.com/yourbirthcertificate/game-optimizer)
@@ -10,9 +10,11 @@ https://polyformproject.org/licenses/noncommercial/1.0.0
 Personal, hobby and study use is fine. Commercial use is not allowed.
 
 A PERSONAL TOOL
-GameOptimizer was made for the author's own use and is shared as is. It comes
+OptiGame+ (GameOptimizer and GameClear merged) was made for the author's own use and is shared as is. It comes
 with no support, no promise of updates and no warranty. It edits game settings
-files and registry values. It backs them up first, but use it at your own risk.
+files and registry values, and it changes the priority and efficiency mode of running
+programs while a game runs. It backs settings up first and restores the rest when the game
+closes, but use it at your own risk.
 
 BUILT WITH AI
 The code was written by Claude, an AI model from Anthropic, through Claude Code,
@@ -33,7 +35,10 @@ Technologies. NVIDIA and GeForce are trademarks of NVIDIA Corporation. AMD and
 Radeon are trademarks of Advanced Micro Devices, Inc. Intel is a trademark of
 Intel Corporation. Windows is a trademark of Microsoft Corporation. GOG is a
 trademark of GOG sp. z o.o. PresentMon is a project of Intel Corporation. These names
-are used only to identify games, engines, launchers and hardware. GameOptimizer
-uses no code, data or files from the NVIDIA app.
+are used only to identify games, engines, launchers and hardware. OptiGame+
+uses no code, data or files from the NVIDIA app, MSI Center or any other laptop vendor app;
+it only opens them. Laptop vendor and app names (MSI, ASUS, Lenovo, HP, Dell, Alienware, Acer,
+Gigabyte, Razer and others) belong to their owners.
 
+Game art is shown from each game's own store or launcher and belongs to its publisher.
 Credits and third-party notices are in CREDITS.md.
