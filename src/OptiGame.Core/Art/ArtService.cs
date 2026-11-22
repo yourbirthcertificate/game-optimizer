@@ -10,6 +10,8 @@ namespace OptiGame.Core.Art;
 
 public sealed record ArtResult(string Path, string Source);
 
+public enum ArtSlot { Cover, SmallIcon }
+
 /// <summary>
 /// Game art for the list and detail header. Order: your own image, the cache, Steam's local library cache (no network),
 /// then (when network art is allowed) Epic's catalog image, GOG's product lookup, Steam's image server by app id, a
@@ -26,7 +28,9 @@ public static class ArtService
 
     static string Safe(string id) => new string(id.Select(c => char.IsLetterOrDigit(c) || c is '-' or '_' ? c : '_').ToArray());
     public static string CachePath(GameInfo g) => Path.Combine(Dir, Safe(g.Id) + ".img");
-    public static string UserPath(GameInfo g) => Path.Combine(Dir, Safe(g.Id) + ".user.img");
+    public static string UserPath(GameInfo g) => UserPath(g, ArtSlot.Cover);
+    public static string UserPath(GameInfo g, ArtSlot slot) =>
+        Path.Combine(Dir, Safe(g.Id) + (slot == ArtSlot.SmallIcon ? ".icon.user.img" : ".user.img"));
     static string MissPath(GameInfo g) => Path.Combine(Dir, Safe(g.Id) + ".none");
 
     /// <summary>The art already on disk for this game without any network: your image, the cache, or Steam's own cache.</summary>
@@ -207,17 +211,50 @@ public static class ArtService
 
     // ------------------------------------------------------------------ your own choices
 
-    /// <summary>Uses an image you picked for this game (copied into the art folder).</summary>
-    public static bool SetUserImage(GameInfo g, string file)
+    static bool LooksLikeUserImage(ReadOnlySpan<byte> bytes, ArtSlot slot) =>
+        LooksLikeImage(bytes) || (slot == ArtSlot.SmallIcon && bytes.Length > 22 &&
+            bytes.StartsWith(new byte[] { 0, 0, 1, 0 }) && (bytes[4] != 0 || bytes[5] != 0));
+
+    public static byte[]? ReadUserImage(string file, ArtSlot slot)
     {
         try
         {
-            var bytes = File.ReadAllBytes(file);
-            if (bytes.Length > MaxBytes || !LooksLikeImage(bytes)) return false;
+            using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var length = stream.Length;
+            if (length is <= 0 or > MaxBytes) return null;
+            var bytes = new byte[(int)length];
+            stream.ReadExactly(bytes);
+            return stream.ReadByte() == -1 && LooksLikeUserImage(bytes, slot) ? bytes : null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+    }
+
+    /// <summary>Uses an image you picked for this game (copied into the art folder).</summary>
+    public static bool SetUserImage(GameInfo g, string file) =>
+        ReadUserImage(file, ArtSlot.Cover) is { } bytes && SetUserImage(g, ArtSlot.Cover, bytes);
+
+    public static bool SetUserImage(GameInfo g, ArtSlot slot, byte[] bytes)
+    {
+        if (bytes.Length > MaxBytes || !LooksLikeUserImage(bytes, slot)) return false;
+        var path = UserPath(g, slot);
+        var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
             Directory.CreateDirectory(Dir);
-            File.WriteAllBytes(UserPath(g), bytes);
+            File.WriteAllBytes(temporary, bytes);
+            File.Move(temporary, path, overwrite: true);
             return true;
         }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
+        finally { DeleteImage(temporary); }
+    }
+
+    public static bool ClearUserSmallIcon(GameInfo g) => DeleteImage(UserPath(g, ArtSlot.SmallIcon));
+
+    static bool DeleteImage(string path)
+    {
+        try { File.Delete(path); return true; }
+        catch (DirectoryNotFoundException) { return true; }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
     }
 
@@ -225,6 +262,6 @@ public static class ArtService
     public static void Reset(GameInfo g, bool keepUserImage = false)
     {
         foreach (var f in new[] { CachePath(g), MissPath(g) }.Concat(keepUserImage ? Array.Empty<string>() : new[] { UserPath(g) }))
-            try { File.Delete(f); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            DeleteImage(f);
     }
 }

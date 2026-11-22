@@ -42,11 +42,37 @@ public sealed partial class GameRow
     // ------------------------------------------------------------------ art
 
     ImageSource? _art;
+    ImageSource? _smallIconOverride;
     string _artSource = "";
-    public ImageSource? Art { get => _art; private set { if (Set(ref _art, value)) { Raise(nameof(HasArt)); Raise(nameof(ShowInitials)); } } }
+    int _coverRequest;
+
+    public ImageSource? Art
+    {
+        get => _art;
+        private set
+        {
+            if (!Set(ref _art, value)) return;
+            Raise(nameof(HasArt));
+            Raise(nameof(ShowInitials));
+            RefreshSmallIcon();
+        }
+    }
+
+    public ImageSource? SmallIcon => _smallIconOverride ?? Art;
+    public bool HasSmallIcon => SmallIcon is not null;
+    public bool ShowSmallInitials => SmallIcon is null;
+    public Stretch SmallIconStretch => _smallIconOverride is not null || IsIcon ? Stretch.Uniform : Stretch.UniformToFill;
     public bool HasArt => _art is not null;
     public bool ShowInitials => _art is null;
     public string ArtSource { get => _artSource; private set => Set(ref _artSource, value); }
+
+    void RefreshSmallIcon()
+    {
+        Raise(nameof(SmallIcon));
+        Raise(nameof(HasSmallIcon));
+        Raise(nameof(ShowSmallInitials));
+        Raise(nameof(SmallIconStretch));
+    }
 
     public string Initials
     {
@@ -73,18 +99,43 @@ public sealed partial class GameRow
     /// <summary>Loads the art: your image, the cache, Steam's cache, then (if allowed) the online chain, then the exe icon.</summary>
     public async Task LoadArtAsync(bool network, string? sgdbKey)
     {
+        var request = ++_coverRequest;
+        _smallIconOverride = ReadImage(ArtService.UserPath(Game, ArtSlot.SmallIcon), ArtSlot.SmallIcon);
+        RefreshSmallIcon();
+
         ArtResult? res = null;
         try { res = await ArtService.GetAsync(Game, network, sgdbKey); }
         catch (Exception e) when (e is IOException or System.Net.Http.HttpRequestException or UnauthorizedAccessException) { }
-        if (res is not null && SetImage(res.Path)) { ArtSource = res.Source; return; }
-        if (Exes.Count == 0) return;
+        if (request != _coverRequest) return;
+        if (res is not null && ReadImage(res.Path, ArtSlot.Cover) is { } cover)
+        {
+            ShowCover(cover, res.Source);
+            return;
+        }
         foreach (var exe in Exes)
-            if (ExeIcon(exe) is { } icon) { Art = icon; ArtSource = "the game's own icon"; IsIcon = true; Raise(nameof(IsIcon)); return; }
+            if (ExeIcon(exe) is { } icon)
+            {
+                ShowCover(icon, "the game's own icon", isIcon: true);
+                return;
+            }
+        ShowCover(null, "");
     }
 
     public bool IsIcon { get; private set; }
 
-    bool SetImage(string path)
+    void ShowCover(ImageSource? image, string source, bool isIcon = false)
+    {
+        IsIcon = isIcon;
+        Art = image;
+        ArtSource = source;
+        Raise(nameof(IsIcon));
+        Raise(nameof(SmallIconStretch));
+    }
+
+    static ImageSource? ReadImage(string file, ArtSlot slot) =>
+        ArtService.ReadUserImage(file, slot) is { } bytes ? DecodeImage(bytes, slot) : null;
+
+    static ImageSource? DecodeImage(byte[] bytes, ArtSlot slot)
     {
         try
         {
@@ -92,15 +143,15 @@ public sealed partial class GameRow
             bmp.BeginInit();
             bmp.CacheOption = BitmapCacheOption.OnLoad;      // read once, so the file is not locked
             bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-            bmp.DecodePixelWidth = 640;
-            bmp.UriSource = new Uri(path);
+            bmp.DecodePixelWidth = slot == ArtSlot.SmallIcon ? 96 : 640;
+            using var stream = new MemoryStream(bytes, writable: false);
+            bmp.StreamSource = stream;
             bmp.EndInit();
             bmp.Freeze();
-            IsIcon = false; Raise(nameof(IsIcon));
-            Art = bmp;
-            return true;
+            return bmp;
         }
-        catch (Exception e) when (e is IOException or NotSupportedException or InvalidOperationException or FileFormatException or UriFormatException) { return false; }
+        catch (Exception e) when (e is IOException or NotSupportedException or InvalidOperationException or FileFormatException or ArgumentException)
+        { return null; }
     }
 
     static ImageSource? ExeIcon(string exe)
@@ -116,11 +167,30 @@ public sealed partial class GameRow
         catch (Exception e) when (e is IOException or ArgumentException or System.ComponentModel.Win32Exception or UnauthorizedAccessException) { return null; }
     }
 
-    public bool ChooseArt(string file)
+    public bool ChooseArt(string file, ArtSlot slot)
     {
-        if (!ArtService.SetUserImage(Game, file)) return false;
-        if (!SetImage(ArtService.UserPath(Game))) return false;
-        ArtSource = "your image";
+        var bytes = ArtService.ReadUserImage(file, slot);
+        if (bytes is null || DecodeImage(bytes, slot) is not { } image ||
+            !ArtService.SetUserImage(Game, slot, bytes)) return false;
+
+        if (slot == ArtSlot.SmallIcon)
+        {
+            _smallIconOverride = image;
+            RefreshSmallIcon();
+        }
+        else
+        {
+            _coverRequest++;
+            ShowCover(image, "your image");
+        }
+        return true;
+    }
+
+    public bool ResetSmallIcon()
+    {
+        if (!ArtService.ClearUserSmallIcon(Game)) return false;
+        _smallIconOverride = null;
+        RefreshSmallIcon();
         return true;
     }
 
