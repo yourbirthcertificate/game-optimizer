@@ -54,7 +54,7 @@ internal sealed class KnownConfigSource : IConfigSource
 
     static bool IsUnrealSettings(byte[] bytes)
     {
-        var options = IniDocument.Parse(bytes).Flatten();
+        var options = FormatHandlers.Ini.Read(bytes).Content.Flatten();
         return options.Any(option => option.Value is not null &&
             (option.Key.StartsWith("ScalabilityGroups/sg.", StringComparison.OrdinalIgnoreCase) ||
              (option.Key.StartsWith("/Script/", StringComparison.OrdinalIgnoreCase) &&
@@ -63,7 +63,7 @@ internal sealed class KnownConfigSource : IConfigSource
 
     static bool IsRedSettings(byte[] bytes)
     {
-        var options = RedSettingsFile.Parse(bytes).Options;
+        var options = FormatHandlers.Red.Read(bytes).Content.Options;
         return options.GroupBy(option => (option.Group, option.Name)).Any(group =>
             group.Count() == 1 && group.First() is { Value.Start: >= 0 } option &&
             (option.Group.StartsWith("/graphics/", StringComparison.Ordinal)
@@ -85,7 +85,7 @@ internal sealed class KnownConfigSource : IConfigSource
         switch (format)
         {
             case "ini":
-                var options = IniDocument.Parse(bytes).Flatten();
+                var options = FormatHandlers.Ini.Read(bytes).Content.Flatten();
                 return keys.Any(key => key.IndexOf('/') > 0 && options.GetValueOrDefault(key) is not null);
             case "json":
                 using (var json = JsonDocument.Parse(bytes, new JsonDocumentOptions
@@ -98,7 +98,7 @@ internal sealed class KnownConfigSource : IConfigSource
                 var nodes = KeyValues(bytes);
                 return keys.Any(key => CountValues(nodes, key) == 1);
             case "gvas":
-                var save = GvasFile.Load(bytes);
+                var save = FormatHandlers.Gvas.Read(bytes).Content;
                 return keys.Any(key => save.Properties.Where(property => property.Name == key).ToArray()
                     is [var property] && property.Get() is not null);
             default:

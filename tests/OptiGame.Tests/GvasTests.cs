@@ -1,5 +1,9 @@
 using System.Text;
 using OptiGame.Core.Formats;
+using OptiGame.Core.Hardware;
+using OptiGame.Core.Library;
+using OptiGame.Core.Optimize;
+using OptiGame.Core.Safety;
 
 namespace OptiGame.Tests;
 
@@ -83,6 +87,48 @@ public class GvasTests
         Assert.Equal(false, g.Find("VSyncEnabled?")!.Get());
         Assert.Equal(162.0, g.Find("FrameRateLimit")!.Get());
         Assert.Equal(2, g.Find("ShadowQuality")!.Get());
+    }
+
+    [Fact]
+    public void Rule_preview_and_legacy_key_undo_keep_gvas_types_and_locators()
+    {
+        var folder = Directory.CreateTempSubdirectory("optigame-gvas-parity-").FullName;
+        try
+        {
+            var original = Modern();
+            var path = Path.Combine(folder, "fixture.sav");
+            File.WriteAllBytes(path, original);
+            var game = new GameInfo { Id = "fixture", Name = "Fixture", Store = "Test", InstallDir = folder };
+            var rule = new GameRule
+            {
+                Id = "fixture", Match = new RuleMatch { InstallDirs = [Path.GetFileName(folder)] },
+                Files = [new RuleFile
+                {
+                    Format = "gvas", Path = path,
+                    Set = new() { ["FrameRateLimit"] = System.Text.Json.JsonSerializer.SerializeToElement(90) },
+                }],
+            };
+            var plan = Planner.Plan(game, new HardwareInfo(), QualityStep.High, [rule]);
+            var edit = Assert.Single(plan.Files);
+            var change = Assert.Single(edit.Changes);
+            Assert.Equal("gvas|FrameRateLimit", change.Locator);
+            Assert.Equal("60", change.OldRaw);
+            Assert.Equal("90", change.NewRaw);
+            Assert.Equal(90.0, GvasFile.Load(edit.Updated).Find("FrameRateLimit")!.Get());
+            Assert.Equal(original, File.ReadAllBytes(path));
+
+            var later = GvasFile.Load(edit.Updated);
+            Assert.True(later.Find("Language")!.TrySet("nl", out _));
+            var (restored, keys) = Applier.UndoKeys("gvas", later.Save(), [new RecordedChange
+            {
+                Setting = "FrameRateLimit", Locator = "gvas|FrameRateLimit", OldRaw = "60", NewRaw = "90",
+            }]);
+            Assert.Equal(KeyState.Revert, Assert.Single(keys).State);
+            var expected = GvasFile.Load(original);
+            Assert.True(expected.Find("Language")!.TrySet("nl", out _));
+            Assert.Equal(expected.Save(), restored);
+        }
+        finally { Directory.Delete(folder, recursive: true); }
     }
 
     [Fact]
