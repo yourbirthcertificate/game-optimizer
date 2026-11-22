@@ -136,7 +136,7 @@ public static class GpuPref
             using var k = Registry.CurrentUser.OpenSubKey(Key);
             if (k?.GetValue(exePath) is string v)
                 foreach (var part in v.Split(';', StringSplitOptions.RemoveEmptyEntries))
-                    if (part.StartsWith("GpuPreference=", StringComparison.OrdinalIgnoreCase) && int.TryParse(part[14..], out int n)) return n;
+                    if (part.StartsWith("GpuPreference=", StringComparison.OrdinalIgnoreCase) && int.TryParse(part[14..], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int n)) return n;
         }
         catch { }
         return 0; // let Windows decide

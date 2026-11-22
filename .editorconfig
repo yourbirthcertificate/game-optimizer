@@ -1,0 +1,8 @@
+root = true
+
+[*.cs]
+# Numbers written to settings files, rules, benchmarks or requests must never depend on the PC's regional format
+# (this PC is nl-NL, where 5.0 prints as "5,0"). Pass CultureInfo.InvariantCulture explicitly.
+dotnet_diagnostic.CA1305.severity = warning
+dotnet_diagnostic.CA1304.severity = warning
+dotnet_diagnostic.CA1311.severity = warning

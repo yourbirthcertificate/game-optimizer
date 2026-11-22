@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -86,7 +87,7 @@ public static partial class GpuMatcher
     static double LaptopFactor(Entry e)
     {
         var m = Regex.Match(e.Name, @"\d{3,4}");
-        int num = m.Success ? int.Parse(m.Value) : 0;
+        int num = m.Success ? int.Parse(m.Value, CultureInfo.InvariantCulture) : 0;
         if (e.Vendor == "nvidia")
         {
             if (e.Name.Contains("RTX")) return (num % 100) switch { 90 => 0.72, 80 => 0.77, 70 => 0.80, 60 => 0.87, _ => 0.85 };
@@ -123,15 +124,15 @@ public static partial class GpuMatcher
             var prev = i > 0 ? toks[i - 1] : "";
             string[] fams = { "gtx", "rtx", "gt", "gts", "rx", "hd" };
             if (nxt != "series" && !fams.Contains(prev)) continue;
-            int lo = int.Parse(toks[i]), span = (int)Math.Pow(10, toks[i].Length - 1);
+            int lo = int.Parse(toks[i], CultureInfo.InvariantCulture), span = (int)Math.Pow(10, toks[i].Length - 1);
             var prefixes = fams.Contains(prev) ? new[] { prev } : new[] { "gtx", "rtx", "rx", "hd", "gt" };
             foreach (var p in prefixes)
             {
                 var pool = Exact.Where(kv => kv.Key.Split(' ') is [var a, var b] && a == p && b.All(char.IsAsciiDigit)
-                                             && int.Parse(b) >= lo && int.Parse(b) < lo + span)
+                                             && int.Parse(b, CultureInfo.InvariantCulture) >= lo && int.Parse(b, CultureInfo.InvariantCulture) < lo + span)
                                 .Select(kv => kv.Value).Distinct().ToList();
                 if (pool.Count == 0) continue;
-                var gaming = pool.Where(x => int.Parse(Regex.Match(x.Name, @"\d+").Value) % 100 >= 50).ToList();
+                var gaming = pool.Where(x => int.Parse(Regex.Match(x.Name, @"\d+").Value, CultureInfo.InvariantCulture) % 100 >= 50).ToList();
                 var e = (gaming.Count > 0 ? gaming : pool).MinBy(x => x.Score)!;
                 return new GpuMatch($"{e.Name} (entry card of the {p.ToUpperInvariant()} {toks[i]} series)", e.Score, e.Vendor, "generic");
             }

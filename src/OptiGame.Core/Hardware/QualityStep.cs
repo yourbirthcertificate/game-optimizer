@@ -24,7 +24,7 @@ public static class QualitySteps
     public static bool TryParse(string text, out QualityStep step)
     {
         var t = text.Replace(" ", "").Replace("-", "").Replace("_", "");
-        if (int.TryParse(t, out var i) && i >= 0 && i < Count) { step = (QualityStep)i; return true; }
+        if (int.TryParse(t, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var i) && i >= 0 && i < Count) { step = (QualityStep)i; return true; }
         return Enum.TryParse(t, ignoreCase: true, out step) && Enum.IsDefined(step);
     }
 

@@ -74,6 +74,6 @@ public static class UnityQuality
     {
         uint h = 5381;
         foreach (var b in Encoding.UTF8.GetBytes(key)) h = (h * 33) ^ b;
-        return $"{key}_h{h}";
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{key}_h{h}");
     }
 }

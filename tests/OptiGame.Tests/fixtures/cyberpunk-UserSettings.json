@@ -1,0 +1,854 @@
+{
+    "version": 152,
+    "data": [
+        {
+            "group_name": "/gameplay/performance",
+            "options": [
+                {
+                    "name": "CrowdDensity",
+                    "type": "name_list",
+                    "is_dynamic": false,
+                    "value": "Medium",
+                    "index": 1,
+                    "default_index": 2,
+                    "values": [
+                        "Low",
+                        "Medium",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "SlowHDD",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "HDDMode",
+                    "type": "name_list",
+                    "is_dynamic": false,
+                    "value": "Auto",
+                    "index": 2,
+                    "default_index": 2,
+                    "values": [
+                        "Off",
+                        "On",
+                        "Auto"
+                    ]
+                }
+            ]
+        },
+        {
+            "group_name": "/graphics/presets",
+            "options": [
+                {
+                    "name": "QuickPresets",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "Custom",
+                    "index": 0
+                },
+                {
+                    "name": "ResolutionScaling",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "DLSS",
+                    "index": 1
+                },
+                {
+                    "name": "DLSS_UNSUPPORTED",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "XESS_UNSUPPORTED",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "FSR4_UNSUPPORTED",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "DLSS_BackendPreset",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Transformer2",
+                    "index": 1,
+                    "default_index": 0,
+                    "values": [
+                        "Transformer",
+                        "Transformer2",
+                        "Legacy"
+                    ]
+                },
+                {
+                    "name": "DLSS",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "Balanced",
+                    "index": 3
+                },
+                {
+                    "name": "DLSS_NewSharpness",
+                    "type": "float",
+                    "value": 0.0,
+                    "default_value": 0.0,
+                    "min_value": 0.0,
+                    "max_value": 1.0,
+                    "step_value": 0.0500000007
+                },
+                {
+                    "name": "DLAA_NewSharpness",
+                    "type": "float",
+                    "value": 0.0,
+                    "default_value": 0.0,
+                    "min_value": 0.0,
+                    "max_value": 1.0,
+                    "step_value": 0.0500000007
+                },
+                {
+                    "name": "DLSS_D",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "FSR2",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "Quality",
+                    "index": 1
+                },
+                {
+                    "name": "FSR2_Sharpness",
+                    "type": "float",
+                    "value": 0.5,
+                    "default_value": 0.5,
+                    "min_value": 0.0,
+                    "max_value": 1.0,
+                    "step_value": 0.0500000007
+                },
+                {
+                    "name": "FSR3",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "Auto",
+                    "index": 0
+                },
+                {
+                    "name": "FSR4",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "Auto",
+                    "index": 0
+                },
+                {
+                    "name": "FSR3_Sharpness",
+                    "type": "float",
+                    "value": 0.5,
+                    "default_value": 0.5,
+                    "min_value": 0.0,
+                    "max_value": 1.0,
+                    "step_value": 0.0500000007
+                },
+                {
+                    "name": "FSR4_Sharpness",
+                    "type": "float",
+                    "value": 0.0,
+                    "default_value": 0.5,
+                    "min_value": 0.0,
+                    "max_value": 1.0,
+                    "step_value": 0.0500000007
+                },
+                {
+                    "name": "FSR4_FrameGeneration",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "FSR3_FrameGeneration",
+                    "type": "bool",
+                    "value": true,
+                    "default_value": false
+                },
+                {
+                    "name": "XESS",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "Auto",
+                    "index": 0
+                },
+                {
+                    "name": "XESS_Sharpness",
+                    "type": "float",
+                    "value": 0.5,
+                    "default_value": 0.5,
+                    "min_value": 0.0,
+                    "max_value": 1.0,
+                    "step_value": 0.0500000007
+                },
+                {
+                    "name": "XESS_FrameGeneration",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "DynamicResolutionScaling",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "DRS_TargetFPS",
+                    "type": "int",
+                    "value": 30,
+                    "default_value": 30,
+                    "min_value": 10,
+                    "max_value": 240,
+                    "step_value": 1
+                },
+                {
+                    "name": "DRS_MinResolution",
+                    "type": "int",
+                    "value": 65,
+                    "default_value": 65,
+                    "min_value": 50,
+                    "max_value": 100,
+                    "step_value": 1
+                },
+                {
+                    "name": "DRS_MaxResolution",
+                    "type": "int",
+                    "value": 85,
+                    "default_value": 85,
+                    "min_value": 50,
+                    "max_value": 100,
+                    "step_value": 1
+                },
+                {
+                    "name": "FrameGeneration",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "FSR3",
+                    "index": 1
+                },
+                {
+                    "name": "DLSS_MultiFrameGeneration",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "",
+                    "index": -1
+                },
+                {
+                    "name": "DLSS_DynamicMultiFrameGeneration_TargetFPS",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "",
+                    "index": -1
+                },
+                {
+                    "name": "DLSSFrameGen",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "TextureQuality",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "High",
+                    "index": 2,
+                    "default_index": 2,
+                    "values": [
+                        "Low",
+                        "Medium",
+                        "High"
+                    ]
+                }
+            ]
+        },
+        {
+            "group_name": "/graphics/raytracing",
+            "options": [
+                {
+                    "name": "RayTracing",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "RayTracedReflections",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "RayTracedSunShadows",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "RayTracedLocalShadows",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "RayTracedLighting",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Off",
+                    "index": 0,
+                    "default_index": 0,
+                    "values": [
+                        "Off",
+                        "Medium",
+                        "Ultra",
+                        "Psycho"
+                    ]
+                },
+                {
+                    "name": "RayTracedPathTracing",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "RayTracedPathTracingForPhotoMode",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                }
+            ]
+        },
+        {
+            "group_name": "/video/display",
+            "options": [
+                {
+                    "name": "OutputMonitor",
+                    "type": "int_list",
+                    "is_dynamic": true,
+                    "value": 1,
+                    "index": 0
+                },
+                {
+                    "name": "VSync",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "UI-Settings-Video-QualitySetting-Off",
+                    "index": 0
+                },
+                {
+                    "name": "MaximumFPS_OnOff",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "MaximumFPS_Value",
+                    "type": "int",
+                    "value": 165,
+                    "default_value": 30,
+                    "min_value": 10,
+                    "max_value": 240,
+                    "step_value": 1
+                },
+                {
+                    "name": "WindowMode",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "BorderlessWindowed",
+                    "index": 1
+                },
+                {
+                    "name": "Resolution",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "2560x1440",
+                    "index": 20
+                },
+                {
+                    "name": "TonemappingMidpoint",
+                    "type": "float",
+                    "value": 2.0,
+                    "default_value": 2.0,
+                    "min_value": 0.1000000014,
+                    "max_value": 3.0,
+                    "step_value": 0.1000000014
+                },
+                {
+                    "name": "HDRModes",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "None",
+                    "index": 0
+                },
+                {
+                    "name": "MinMonitorBrightness",
+                    "type": "float",
+                    "value": 0.5,
+                    "default_value": 0.002,
+                    "min_value": 0.002,
+                    "max_value": 0.5,
+                    "step_value": 0.0099999997
+                },
+                {
+                    "name": "HDR10PlusGaming",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "MaxMonitorBrightness",
+                    "type": "float",
+                    "value": 270.0,
+                    "default_value": 500.0,
+                    "min_value": 300.0,
+                    "max_value": 10000.0,
+                    "step_value": 10.0
+                },
+                {
+                    "name": "ReflexMode",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Disabled",
+                    "index": 0,
+                    "default_index": 1,
+                    "values": [
+                        "Disabled",
+                        "Enabled",
+                        "Enabled + Boost"
+                    ]
+                },
+                {
+                    "name": "XellMode",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Disabled",
+                    "index": 0,
+                    "default_index": 1,
+                    "values": [
+                        "Disabled",
+                        "Enabled"
+                    ]
+                },
+                {
+                    "name": "PaperWhiteLevel",
+                    "type": "float",
+                    "value": 0.75,
+                    "default_value": 1.0,
+                    "min_value": 0.0,
+                    "max_value": 2.0,
+                    "step_value": 0.1000000014
+                },
+                {
+                    "name": "XellFrameCap",
+                    "type": "int",
+                    "value": 0,
+                    "default_value": 0,
+                    "min_value": 0,
+                    "max_value": 400,
+                    "step_value": 1
+                },
+                {
+                    "name": "Saturation",
+                    "type": "float",
+                    "value": 0.0,
+                    "default_value": 0.0,
+                    "min_value": 0.0,
+                    "max_value": 1.0,
+                    "step_value": 0.0099999997
+                },
+                {
+                    "name": "FSR_AntiLag2Mode",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Disabled",
+                    "index": 0,
+                    "default_index": 1,
+                    "values": [
+                        "Disabled",
+                        "Enabled"
+                    ]
+                },
+                {
+                    "name": "Gamma",
+                    "type": "float",
+                    "value": 1.0,
+                    "default_value": 1.0,
+                    "min_value": 0.5,
+                    "max_value": 2.0,
+                    "step_value": 0.0099999997
+                },
+                {
+                    "name": "Odyssey3D_StereoEnabled",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": false
+                },
+                {
+                    "name": "Odyssey3D_Preset",
+                    "type": "name_list",
+                    "is_dynamic": false,
+                    "value": "Balanced",
+                    "index": 1,
+                    "default_index": 1,
+                    "values": [
+                        "Comfort",
+                        "Balanced",
+                        "Immersive",
+                        "Extreme"
+                    ]
+                },
+                {
+                    "name": "Odyssey3D_Strength",
+                    "type": "float",
+                    "value": 0.1000000014,
+                    "default_value": 0.5,
+                    "min_value": 0.0,
+                    "max_value": 1.0,
+                    "step_value": 0.0500000007
+                },
+                {
+                    "name": "Odyssey3D_WeaponStrength",
+                    "type": "float",
+                    "value": 1.0,
+                    "default_value": 0.2000000029,
+                    "min_value": 0.0,
+                    "max_value": 1.0,
+                    "step_value": 0.0500000007
+                },
+                {
+                    "name": "Odyssey3D_MotionComfort",
+                    "type": "float",
+                    "value": 0.5,
+                    "default_value": 0.5,
+                    "min_value": 0.0,
+                    "max_value": 1.0,
+                    "step_value": 0.0500000007
+                }
+            ]
+        },
+        {
+            "group_name": "/graphics/advanced",
+            "options": [
+                {
+                    "name": "ContactShadows",
+                    "type": "bool",
+                    "value": true,
+                    "default_value": true
+                },
+                {
+                    "name": "FacialTangentUpdates",
+                    "type": "bool",
+                    "value": true,
+                    "default_value": true
+                },
+                {
+                    "name": "Anisotropy",
+                    "type": "int_list",
+                    "is_dynamic": false,
+                    "value": 16,
+                    "index": 3,
+                    "default_index": 0,
+                    "values": [
+                        1,
+                        4,
+                        8,
+                        16
+                    ]
+                },
+                {
+                    "name": "ShadowMeshQuality",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Medium",
+                    "index": 1,
+                    "default_index": 1,
+                    "values": [
+                        "Low",
+                        "Medium",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "LocalShadowsQuality",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Medium",
+                    "index": 2,
+                    "default_index": 0,
+                    "values": [
+                        "Off",
+                        "Low",
+                        "Medium",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "CascadedShadowsRange",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Medium",
+                    "index": 1,
+                    "default_index": 1,
+                    "values": [
+                        "Low",
+                        "Medium",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "CascadedShadowsResolution",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Medium",
+                    "index": 1,
+                    "default_index": 0,
+                    "values": [
+                        "Low",
+                        "Medium",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "DistantShadowsResolution",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "High",
+                    "index": 1,
+                    "default_index": 0,
+                    "values": [
+                        "Low",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "VolumetricFogResolution",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "High",
+                    "index": 2,
+                    "default_index": 1,
+                    "values": [
+                        "Low",
+                        "Medium",
+                        "High",
+                        "Ultra"
+                    ]
+                },
+                {
+                    "name": "VolumetricCloudsQuality",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Medium",
+                    "index": 1,
+                    "default_index": 1,
+                    "values": [
+                        "Off",
+                        "Medium",
+                        "High",
+                        "Ultra"
+                    ]
+                },
+                {
+                    "name": "MaxDynamicDecals",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "High",
+                    "index": 2,
+                    "default_index": 1,
+                    "values": [
+                        "Low",
+                        "Medium",
+                        "High",
+                        "Ultra"
+                    ]
+                },
+                {
+                    "name": "ScreenSpaceReflectionsQuality",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "High",
+                    "index": 3,
+                    "default_index": 1,
+                    "values": [
+                        "Off",
+                        "Low",
+                        "Medium",
+                        "High",
+                        "Ultra",
+                        "Insane"
+                    ]
+                },
+                {
+                    "name": "SubsurfaceScatteringQuality",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Medium",
+                    "index": 1,
+                    "default_index": 1,
+                    "values": [
+                        "Low",
+                        "Medium",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "AmbientOcclusion",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Medium",
+                    "index": 2,
+                    "default_index": 1,
+                    "values": [
+                        "Off",
+                        "Low",
+                        "Medium",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "ColorPrecision",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "High",
+                    "index": 1,
+                    "default_index": 0,
+                    "values": [
+                        "Medium",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "GlobaIlluminationRange",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "High",
+                    "index": 0,
+                    "default_index": 0,
+                    "values": [
+                        "High",
+                        "Ultra"
+                    ]
+                },
+                {
+                    "name": "MirrorQuality",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Medium",
+                    "index": 1,
+                    "default_index": 0,
+                    "values": [
+                        "Low",
+                        "Medium",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "LODPreset",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "High",
+                    "index": 2,
+                    "default_index": 1,
+                    "values": [
+                        "Low",
+                        "Medium",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "AntiAliasing",
+                    "type": "string_list",
+                    "is_dynamic": true,
+                    "value": "",
+                    "index": -1
+                }
+            ]
+        },
+        {
+            "group_name": "/graphics/performance",
+            "options": [
+                {
+                    "name": "CrowdDensity",
+                    "type": "name_list",
+                    "is_dynamic": false,
+                    "value": "Medium",
+                    "index": 1,
+                    "default_index": 2,
+                    "values": [
+                        "Low",
+                        "Medium",
+                        "High"
+                    ]
+                }
+            ]
+        },
+        {
+            "group_name": "/graphics/basic",
+            "options": [
+                {
+                    "name": "FieldOfView",
+                    "type": "float",
+                    "value": 90.0,
+                    "default_value": 80.0,
+                    "min_value": 70.0,
+                    "max_value": 100.0,
+                    "step_value": 5.0
+                },
+                {
+                    "name": "FilmGrain",
+                    "type": "bool",
+                    "value": true,
+                    "default_value": true
+                },
+                {
+                    "name": "ChromaticAberration",
+                    "type": "bool",
+                    "value": false,
+                    "default_value": true
+                },
+                {
+                    "name": "DepthOfField",
+                    "type": "bool",
+                    "value": true,
+                    "default_value": true
+                },
+                {
+                    "name": "LensFlares",
+                    "type": "bool",
+                    "value": true,
+                    "default_value": true
+                },
+                {
+                    "name": "MotionBlur",
+                    "type": "string_list",
+                    "is_dynamic": false,
+                    "value": "Low",
+                    "index": 1,
+                    "default_index": 1,
+                    "values": [
+                        "Off",
+                        "Low",
+                        "High"
+                    ]
+                },
+                {
+                    "name": "Vignette",
+                    "type": "bool",
+                    "value": true,
+                    "default_value": true
+                }
+            ]
+        }
+    ]
+}

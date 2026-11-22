@@ -19,6 +19,7 @@ Look around
   optigame-cli recommend [--game NAME] [--details] [--offline]
                                       Each game's recommended step, its basis and caveats
   optigame-cli why --game NAME             Why a game is skipped and what you can do
+  optigame-cli why --all-skipped           One line for every skipped game, with its likely settings folder
 
 Optimize
   optigame-cli preview [options]           Show every change; nothing is written
@@ -44,7 +45,7 @@ Choices (saved; the app shows the same)
   optigame-cli game unkeep NAME ID...|--all
   optigame-cli profile list | show ID | create NAME [--from ID] | rename ID NAME | delete ID
   optigame-cli profile set ID key=value... | default ID | assign NAME ID|none
-  optigame-cli display list | gameopt display use \\.\DISPLAYn|main
+  optigame-cli display list | optigame-cli display use \\.\DISPLAYn|main
                                       The gaming display (Windows settings are never changed)
 
 Laptop and tools
@@ -213,7 +214,7 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
             var basis = plan.Status != PlanStatus.Skipped && s.Recs.TryGetValue(g.Id, out var r) ? $"[{r.Chip}]" : "";
             Console.WriteLine($"{Trim(g.Name, 36),-36} {Trim(g.SourcesText, 12),-12} {Trim(engine, 28),-28} {step,-10} {basis,-13} {plan.StatusText}");
         }
-        Console.WriteLine("\n* = step set by hand. [basis] = what the recommendation rests on ('gameopt recommend --details').");
+        Console.WriteLine("\n* = step set by hand. [basis] = what the recommendation rests on ('optigame-cli recommend --details').");
         return 0;
     }
 
@@ -240,9 +241,25 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
         return 0;
     }
 
+    /// <summary>One line per skipped game: why, and where its settings probably are. Read-only.</summary>
+    static int WhyAllSkipped()
+    {
+        var s = Load(quietNotes: true);
+        var images = ProcessGuard.RunningImages();
+        var skipped = s.Scan.Games.Select(g => (g, plan: s.PlanFor(g, runningImages: images))).Where(x => x.plan.Status == PlanStatus.Skipped).ToList();
+        foreach (var (g, plan) in skipped)
+        {
+            var hint = plan.Skipped.FirstOrDefault(x => x.StartsWith("Its settings are probably in"));
+            Console.WriteLine($"{g.Name} | {g.Engine} | {plan.SkipKind} | {(hint is null ? "-" : hint)}");
+        }
+        Console.WriteLine($"{Environment.NewLine}{skipped.Count} of {s.Scan.Games.Count} games are skipped; {skipped.Count(x => x.plan.Skipped.Any(h => h.StartsWith("Its settings are probably in")))} have a likely settings folder.");
+        return 0;
+    }
+
     static int Why(List<string> argv)
     {
-        var name = Opt(argv, "--game").FirstOrDefault() ?? throw new ArgumentException("Use: gameopt why --game NAME");
+        if (Flag(argv, "--all-skipped")) { NoMore(argv); return WhyAllSkipped(); }
+        var name = Opt(argv, "--game").FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli why --game NAME | why --all-skipped");
         NoMore(argv);
         var s = Load();
         var g = One(s, name);
@@ -256,7 +273,7 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
             Console.WriteLine("  You can: " + a switch
             {
                 PlanAction.OpenSettingsFolder => $"open the settings folder {plan.SettingsFolder}",
-                PlanAction.AddRule => $"add a rule for it: gameopt rule wizard --game \"{g.Name}\" --target <settings file>",
+                PlanAction.AddRule => $"add a rule for it: optigame-cli rule wizard --game \"{g.Name}\" --target <settings file>",
                 PlanAction.LaunchOnceAndRescan => g.SteamAppId is not null ? $"start it once (steam://rungameid/{g.SteamAppId}), close it, then rescan" : "start it once, close it, then rescan",
                 _ => "close the game, then try again",
             });
@@ -285,13 +302,13 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
         if (filters.Count == 0)
         {
             int quiet = plans.Count(p => p.Status is PlanStatus.Skipped or PlanStatus.NothingToChange);
-            Console.WriteLine($"\n{quiet} other game(s) need nothing or were skipped. 'gameopt scan' lists them; 'gameopt why --game NAME' explains one.");
+            Console.WriteLine($"\n{quiet} other game(s) need nothing or were skipped. 'optigame-cli scan' lists them; 'optigame-cli why --game NAME' explains one.");
         }
         var ready = plans.Where(p => p.Status == PlanStatus.Ready).ToList();
         var scope = filters.Count == 0 ? $"all {games.Count} games" : $"{games.Count} matching game(s)";
         if (!write)
         {
-            Console.WriteLine($"\nPreview of {scope}: {ready.Count} ready, {ready.Sum(p => p.ChangeCount)} change(s). Nothing was written. 'gameopt apply' with the same options writes them.");
+            Console.WriteLine($"\nPreview of {scope}: {ready.Count} ready, {ready.Sum(p => p.ChangeCount)} change(s). Nothing was written. 'optigame-cli apply' with the same options writes them.");
             return 0;
         }
         if (ready.Count == 0) { Console.WriteLine("\nNothing to apply."); return 0; }
@@ -300,7 +317,7 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
         foreach (var a in res.Applied) Console.WriteLine($"Applied   {a}");
         foreach (var r in res.Refused) Console.WriteLine($"Refused   {r}");
         foreach (var e in res.Errors) Console.WriteLine($"Error     {e}");
-        if (res.RunId is not null) Console.WriteLine($"\nBackup run {res.RunId}. Undo with: gameopt restore --run {res.RunId} --apply");
+        if (res.RunId is not null) Console.WriteLine($"\nBackup run {res.RunId}. Undo with: optigame-cli restore --run {res.RunId} --apply");
         return res.Errors.Count > 0 ? 1 : 0;
     }
 

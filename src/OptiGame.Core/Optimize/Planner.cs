@@ -37,13 +37,18 @@ public static partial class Planner
                 case GameEngine.Unreal: Unreal(plan, hw, req, rule); break;
                 case GameEngine.Unity: Unity(plan, req); break;
                 case GameEngine.Source: Source(plan, hw, req); break;
+                case GameEngine.RedEngine: RedEngine(plan, hw, req); break;
                 case GameEngine.Source2:
-                    if (rule is null) plan.Skip(SkipKind.NoHandler, "Source 2 game: its settings format is not supported yet");
+                    if (rule is null) { plan.Skip(SkipKind.NoHandler, "Source 2 game: its settings format is not supported yet"); LikelySettings(plan); }
                     break;
                 default:
-                    if (rule is null) plan.Skip(SkipKind.NoHandler, g.Engine == GameEngine.Unknown
-                        ? "Engine not recognized and no rule for this game"
-                        : $"{g.Engine} game with no rule for it yet");
+                    if (rule is null)
+                    {
+                        plan.Skip(SkipKind.NoHandler, g.Engine == GameEngine.Unknown
+                            ? "Engine not recognized and no rule for this game"
+                            : $"{g.Engine} game with no rule for it yet");
+                        LikelySettings(plan);
+                    }
                     break;
             }
         }
@@ -74,9 +79,18 @@ public static partial class Planner
                 plan.Actions.Add(PlanAction.AddRule);
                 break;
             case SkipKind.NoHandler or SkipKind.UnsupportedFormat or SkipKind.Ambiguous:
+                if (plan.SettingsFolder is not null && Directory.Exists(plan.SettingsFolder)) plan.Actions.Add(PlanAction.OpenSettingsFolder);
                 plan.Actions.Add(PlanAction.AddRule);
                 break;
         }
+    }
+
+    /// <summary>For a game with no handler: name the folder (and settings-like files) that probably holds its settings.</summary>
+    static void LikelySettings(GamePlan plan)
+    {
+        if (SettingsLocator.Find(plan.Game) is not { } c) return;
+        plan.SettingsFolder ??= c.Folder;
+        plan.Skipped.Add($"Its settings are probably in {PathDisplay.Short(c.Folder)} ({string.Join(", ", c.Files)}). Use Add a rule to teach the tool, or open the folder.");
     }
 
     /// <summary>True when the change goes ahead; otherwise it is recorded as kept.</summary>
@@ -97,7 +111,7 @@ public static partial class Planner
         var names = new[] { rule?.UnrealConfigName, g.EngineDetail }.Where(n => !string.IsNullOrEmpty(n)).Distinct();
         foreach (var n in names)
         {
-            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), n!);
+            yield return Path.Combine(LocalAppData, n!);
             yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", n!);
         }
     }

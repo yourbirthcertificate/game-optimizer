@@ -91,6 +91,9 @@ public sealed class GamePlan
         _ => SkipText,
     };
 
+    /// <summary>The reasons and hints recorded for a skipped game, one per line (what was looked at, where its settings probably are).</summary>
+    public string SkipDetail => string.Join(Environment.NewLine, Skipped.Distinct());
+
     public string SkipText => SkipKind switch
     {
         SkipKind.NoHandler => "No handler or rule for this game",

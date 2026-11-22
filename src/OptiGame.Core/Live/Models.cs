@@ -155,6 +155,6 @@ public sealed class BoostResult
         if (PriorityRaised) parts.Add("raised game priority");
         if (PlanNote != null) parts.Add(PlanNote);
         if (StandbyPurged) parts.Add("purged standby memory");
-        return parts.Count == 0 ? "Nothing needed clearing." : char.ToUpper(parts[0][0]) + parts[0][1..] + (parts.Count > 1 ? ", " + string.Join(", ", parts.GetRange(1, parts.Count - 1)) : "") + ".";
+        return parts.Count == 0 ? "Nothing needed clearing." : char.ToUpperInvariant(parts[0][0]) + parts[0][1..] + (parts.Count > 1 ? ", " + string.Join(", ", parts.GetRange(1, parts.Count - 1)) : "") + ".";
     }
 }

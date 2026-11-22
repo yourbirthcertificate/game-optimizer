@@ -205,20 +205,31 @@ public partial class GamesPage : UserControl
         }
     }
 
-    void More_Click(object sender, RoutedEventArgs e)
+    /// <summary>Opens a button's context menu under the button, with its right edge on the button's when <paramref name="alignRight"/> (the More button sits at the window's right edge).</summary>
+    static void OpenMenu(object sender, bool alignRight)
     {
-        if (sender is Button { ContextMenu: { } m } b) { m.PlacementTarget = b; m.IsOpen = true; }
+        if (sender is not Button { ContextMenu: { } m } b) return;
+        m.PlacementTarget = b;
+        if (alignRight)
+        {
+            m.Placement = System.Windows.Controls.Primitives.PlacementMode.Custom;
+            m.CustomPopupPlacementCallback = (popup, target, _) => new[]
+            {
+                new System.Windows.Controls.Primitives.CustomPopupPlacement(new Point(target.Width - popup.Width, target.Height), System.Windows.Controls.Primitives.PopupPrimaryAxis.None),
+            };
+        }
+        else m.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        m.IsOpen = true;
     }
+
+    void More_Click(object sender, RoutedEventArgs e) => OpenMenu(sender, alignRight: true);
 
     void ClearFilters_Click(object sender, RoutedEventArgs e)
     {
         _vm.Search = ""; _vm.StoreFilter = "All stores"; _vm.EngineFilter = "All engines"; _vm.OnlyCustom = false; _vm.OnlyPending = false; _vm.FilterIndex = 0;
     }
 
-    void ChangeArt_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { ContextMenu: { } m } b) { m.PlacementTarget = b; m.IsOpen = true; }
-    }
+    void ChangeArt_Click(object sender, RoutedEventArgs e) => OpenMenu(sender, alignRight: false);
 
     void ArtChoose_Click(object sender, RoutedEventArgs e)
     {

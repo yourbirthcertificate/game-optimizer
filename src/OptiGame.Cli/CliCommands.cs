@@ -47,7 +47,7 @@ public static partial class Cli
         NoMore(argv);
         var runs = Applier.Runs();
         var run = runId is null ? runs.FirstOrDefault(r => r.Kind == "optimize") ?? runs.FirstOrDefault() : runs.FirstOrDefault(r => r.Id == runId);
-        if (run is null) return Fail(runId is null ? "No backups to restore." : $"No run '{runId}'. See 'gameopt history'.");
+        if (run is null) return Fail(runId is null ? "No backups to restore." : $"No run '{runId}'. See 'optigame-cli history'.");
         var plan = Applier.PlanRestore(run, game);
         if (plan.Items.Count == 0) { Console.WriteLine("Nothing in that run matched."); return 0; }
         var mode = full ? RestoreMode.FullBackup : RestoreMode.UndoChanges;
@@ -80,7 +80,7 @@ public static partial class Cli
         foreach (var a in res.Applied) Console.WriteLine($"Restored  {a}");
         foreach (var r in res.Refused) Console.WriteLine($"Not done  {r}");
         foreach (var e in res.Errors) Console.WriteLine($"Error     {e}");
-        if (res.RunId is not null) Console.WriteLine($"\nThe state before this restore is run {res.RunId} ('gameopt restore --run {res.RunId} --apply' undoes it).");
+        if (res.RunId is not null) Console.WriteLine($"\nThe state before this restore is run {res.RunId} ('optigame-cli restore --run {res.RunId} --apply' undoes it).");
         if (res.Applied.Count + res.Refused.Count + res.Errors.Count == 0) Console.WriteLine("Nothing needed restoring.");
         return res.Refused.Count + res.Errors.Count > 0 ? 1 : 0;
     }
@@ -98,7 +98,7 @@ public static partial class Cli
         }
         if (argv is ["--offset", var o])
         {
-            if (!int.TryParse(o, out var n) || Math.Abs(n) > Prefs.MaxOffset) throw new ArgumentException($"Offset must be -{Prefs.MaxOffset} to {Prefs.MaxOffset}.");
+            if (!int.TryParse(o, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var n) || Math.Abs(n) > Prefs.MaxOffset) throw new ArgumentException($"Offset must be -{Prefs.MaxOffset} to {Prefs.MaxOffset}.");
             prefs.GlobalOffset = n;
         }
         else if (argv is ["--game", var name, var val])
@@ -108,7 +108,7 @@ public static partial class Cli
             if (val.Equals("reset", StringComparison.OrdinalIgnoreCase)) prefs.Game(g.Id).Step = null;
             else prefs.Game(g.Id).Step = QualitySteps.TryParse(val, out var st) ? st : throw new ArgumentException($"Unknown step '{val}'.");
         }
-        else throw new ArgumentException("Use: gameopt step --offset N, or gameopt step --game NAME STEP|reset");
+        else throw new ArgumentException("Use: optigame-cli step --offset N, or optigame-cli step --game NAME STEP|reset");
         prefs.Save();
         Console.WriteLine("Saved.");
         return 0;
@@ -116,7 +116,7 @@ public static partial class Cli
 
     static int Game(List<string> argv)
     {
-        if (argv.Count < 2) throw new ArgumentException("Use: gameopt game show|set|keep|unkeep NAME ...");
+        if (argv.Count < 2) throw new ArgumentException("Use: optigame-cli game show|set|keep|unkeep NAME ...");
         var sub = argv[0].ToLowerInvariant();
         var s = Load(quietNotes: true);
         var g = One(s, argv[1]);
@@ -154,14 +154,14 @@ public static partial class Cli
                 CheckDisplay(s, gp.Display);
                 break;
             case "keep":
-                if (rest.Count == 0) throw new ArgumentException("Give setting ids (shown in brackets by 'gameopt preview --game NAME').");
+                if (rest.Count == 0) throw new ArgumentException("Give setting ids (shown in brackets by 'optigame-cli preview --game NAME').");
                 foreach (var id in rest) if (!gp.Excluded.Contains(id)) gp.Excluded.Add(id);
                 break;
             case "unkeep":
                 if (rest is ["--all"]) gp.Excluded.Clear();
                 else foreach (var id in rest) gp.Excluded.Remove(id);
                 break;
-            default: throw new ArgumentException("Use: gameopt game show|set|keep|unkeep NAME ...");
+            default: throw new ArgumentException("Use: optigame-cli game show|set|keep|unkeep NAME ...");
         }
         s.Prefs.Save();
         Console.WriteLine("Saved.");
@@ -187,7 +187,7 @@ public static partial class Cli
                     Console.WriteLine($"{p.Id,-16} {p.Name,-16} {(p.BuiltIn ? "built-in" : "yours"),-9} {(p.Id == prefs.DefaultProfileId ? "default" : "")}");
                 return 0;
             case "show":
-                var pr = prefs.FindProfile(rest.FirstOrDefault()) ?? throw new ArgumentException("Use: gameopt profile show ID");
+                var pr = prefs.FindProfile(rest.FirstOrDefault()) ?? throw new ArgumentException("Use: optigame-cli profile show ID");
                 Console.WriteLine($"{pr.Name} ({pr.Id}){(pr.BuiltIn ? ", built-in" : "")}");
                 if (pr.Description.Length > 0) Console.WriteLine("  " + pr.Description);
                 foreach (var d in SettingsParser.Describe(pr, display)) Console.WriteLine("  " + d);
@@ -201,25 +201,25 @@ public static partial class Cli
                 Console.WriteLine($"Created profile {created.Name} ({created.Id}).");
                 break;
             case "rename":
-                if (rest.Count < 2) throw new ArgumentException("Use: gameopt profile rename ID NEW NAME");
+                if (rest.Count < 2) throw new ArgumentException("Use: optigame-cli profile rename ID NEW NAME");
                 prefs.RenameProfile(rest[0], string.Join(' ', rest.Skip(1)));
                 break;
             case "delete":
-                int n = prefs.DeleteProfile(rest.FirstOrDefault() ?? throw new ArgumentException("Use: gameopt profile delete ID"));
+                int n = prefs.DeleteProfile(rest.FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli profile delete ID"));
                 Console.WriteLine($"Deleted.{(n > 0 ? $" {n} game(s) now use the default profile." : "")}");
                 break;
             case "set":
-                var id = rest.FirstOrDefault() ?? throw new ArgumentException("Use: gameopt profile set ID key=value...");
+                var id = rest.FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli profile set ID key=value...");
                 var target = prefs.Profiles.FirstOrDefault(p => p.Id == id)
-                             ?? throw new ArgumentException(prefs.FindProfile(id) is null ? $"No profile '{id}'." : "Built-in profiles cannot be changed; 'gameopt profile create NAME --from " + id + "' makes an editable copy.");
+                             ?? throw new ArgumentException(prefs.FindProfile(id) is null ? $"No profile '{id}'." : "Built-in profiles cannot be changed; 'optigame-cli profile create NAME --from " + id + "' makes an editable copy.");
                 foreach (var a in rest.Skip(1)) SettingsParser.Apply(target, a);
                 break;
             case "default":
-                var dp = prefs.FindProfile(rest.FirstOrDefault()) ?? throw new ArgumentException("Use: gameopt profile default ID");
+                var dp = prefs.FindProfile(rest.FirstOrDefault()) ?? throw new ArgumentException("Use: optigame-cli profile default ID");
                 prefs.DefaultProfileId = dp.Id;
                 break;
             case "assign":
-                if (rest.Count < 2) throw new ArgumentException("Use: gameopt profile assign GAME ID|none");
+                if (rest.Count < 2) throw new ArgumentException("Use: optigame-cli profile assign GAME ID|none");
                 var s = Load(quietNotes: true);
                 var g = One(s, rest[0]);
                 var pid = rest[1];
@@ -227,7 +227,7 @@ public static partial class Cli
                 s.Prefs.Save();
                 Console.WriteLine("Saved.");
                 return 0;
-            default: throw new ArgumentException("Use: gameopt profile list|show|create|rename|delete|set|default|assign");
+            default: throw new ArgumentException("Use: optigame-cli profile list|show|create|rename|delete|set|default|assign");
         }
         prefs.Save();
         Console.WriteLine("Saved.");
@@ -242,12 +242,12 @@ public static partial class Cli
         if (argv is ["use", var dev])
         {
             if (dev is "main" or "primary") prefs.GamingDisplay = null;
-            else prefs.GamingDisplay = hw.FindDisplay(dev)?.DeviceName ?? throw new ArgumentException($"{dev} is not connected. 'gameopt display list' shows the names.");
+            else prefs.GamingDisplay = hw.FindDisplay(dev)?.DeviceName ?? throw new ArgumentException($"{dev} is not connected. 'optigame-cli display list' shows the names.");
             prefs.Save();
             Console.WriteLine("Saved. Windows display settings were not changed.");
             return 0;
         }
-        throw new ArgumentException("Use: gameopt display list | gameopt display use \\\\.\\DISPLAYn|main");
+        throw new ArgumentException("Use: optigame-cli display list | optigame-cli display use \\\\.\\DISPLAYn|main");
     }
 
     static int Library(List<string> argv)
@@ -258,12 +258,12 @@ public static partial class Cli
         switch (sub)
         {
             case "list":
-                if (prefs.ManualGames.Count == 0) Console.WriteLine("No folders added. 'gameopt library add PATH' adds one.");
+                if (prefs.ManualGames.Count == 0) Console.WriteLine("No folders added. 'optigame-cli library add PATH' adds one.");
                 foreach (var m in prefs.ManualGames) Console.WriteLine($"{m.Path}{(m.Name is null ? "" : $"  ({m.Name})")}{(Directory.Exists(m.Path) ? "" : "  [not reachable]")}");
                 return 0;
             case "add":
                 var name = Opt(rest, "--name").FirstOrDefault();
-                var path = Path.GetFullPath(rest.FirstOrDefault() ?? throw new ArgumentException("Use: gameopt library add PATH [--name NAME]"));
+                var path = Path.GetFullPath(rest.FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli library add PATH [--name NAME]"));
                 if (!Directory.Exists(path)) throw new ArgumentException($"{path} does not exist.");
                 if (prefs.ManualGames.Any(m => LibraryScanner.NormalizeDir(m.Path) == LibraryScanner.NormalizeDir(path))) throw new ArgumentException("That folder is already added.");
                 prefs.ManualGames.Add(new ManualGame { Path = path, Name = name });
@@ -273,13 +273,13 @@ public static partial class Cli
                 Console.WriteLine($"Added {g.Name} ({g.Engine}). If a launcher also lists this folder, the two entries are merged.");
                 return 0;
             case "remove":
-                var p = rest.FirstOrDefault() ?? throw new ArgumentException("Use: gameopt library remove PATH");
+                var p = rest.FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli library remove PATH");
                 int n = prefs.ManualGames.RemoveAll(m => LibraryScanner.NormalizeDir(m.Path) == LibraryScanner.NormalizeDir(p));
                 if (n == 0) throw new ArgumentException($"{p} is not in the list.");
                 prefs.Save();
                 Console.WriteLine("Removed from the list. No files were deleted.");
                 return 0;
-            default: throw new ArgumentException("Use: gameopt library list|add|remove");
+            default: throw new ArgumentException("Use: optigame-cli library list|add|remove");
         }
     }
 
@@ -298,7 +298,7 @@ public static partial class Cli
             prefs.SharedCacheDirs.RemoveAll(x => x.Equals(Path.GetFullPath(d), StringComparison.OrdinalIgnoreCase));
             prefs.Save();
         }
-        else if (argv.Count > 0) throw new ArgumentException("Use: gameopt shared-cache [add DIR | remove DIR]");
+        else if (argv.Count > 0) throw new ArgumentException("Use: optigame-cli shared-cache [add DIR | remove DIR]");
         prefs.ApplySharedCaches();
         Console.WriteLine("Requirement data is read from:");
         Console.WriteLine($"  {RequirementSource.CacheDir} (own cache)");
@@ -335,7 +335,7 @@ public static partial class Cli
                 }
                 return bad > 0 ? 1 : 0;
             case "snapshot":
-                var target = Opt(rest, "--target").FirstOrDefault() ?? throw new ArgumentException("Use: gameopt rule snapshot --target PATH [--format F] [--out FILE]");
+                var target = Opt(rest, "--target").FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli rule snapshot --target PATH [--format F] [--out FILE]");
                 var fmt = Opt(rest, "--format").FirstOrDefault() ?? Snapshot.GuessFormat(target) ?? throw new ArgumentException("Cannot tell the format; add --format " + string.Join("|", Snapshot.Formats));
                 var outFile = Opt(rest, "--out").FirstOrDefault();
                 NoMore(rest);
@@ -345,20 +345,20 @@ public static partial class Cli
                 foreach (var u in snap.Unreadable) Console.WriteLine("not usable: " + u);
                 return 0;
             case "diff":
-                if (rest.Count != 2) throw new ArgumentException("Use: gameopt rule diff BEFORE.json AFTER.json");
+                if (rest.Count != 2) throw new ArgumentException("Use: optigame-cli rule diff BEFORE.json AFTER.json");
                 var diffs = Snapshot.Diff(Snapshot.FromJson(File.ReadAllText(rest[0])), Snapshot.FromJson(File.ReadAllText(rest[1])));
                 if (diffs.Count == 0) Console.WriteLine("No differences.");
                 foreach (var d in diffs) Console.WriteLine($"{d.Kind,-8} {d}");
                 return 0;
             case "wizard":
                 return await Wizard(rest);
-            default: throw new ArgumentException("Use: gameopt rule list|validate|snapshot|diff|wizard");
+            default: throw new ArgumentException("Use: optigame-cli rule list|validate|snapshot|diff|wizard");
         }
     }
 
     static async Task<int> Wizard(List<string> rest)
     {
-        var name = Opt(rest, "--game").FirstOrDefault() ?? throw new ArgumentException("Use: gameopt rule wizard --game NAME --target PATH [--format F]");
+        var name = Opt(rest, "--game").FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli rule wizard --game NAME --target PATH [--format F]");
         var target = Opt(rest, "--target").FirstOrDefault() ?? throw new ArgumentException("Give --target: the settings file, or HKCU/Software/... for registry settings.");
         var fmt = Opt(rest, "--format").FirstOrDefault() ?? Snapshot.GuessFormat(target) ?? throw new ArgumentException("Cannot tell the format; add --format " + string.Join("|", Snapshot.Formats));
         NoMore(rest);
@@ -379,7 +379,7 @@ public static partial class Cli
         for (int i = 0; i < diffs.Count; i++) Console.WriteLine($"  {i + 1}. {diffs[i]}");
         Console.Write("\nWhich numbers belong to the setting you changed (e.g. 1,3)? ");
         var picks = (Console.ReadLine() ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(x => int.TryParse(x, out var n) ? n : 0).Where(n => n >= 1 && n <= diffs.Count).Distinct().ToList();
+            .Select(x => int.TryParse(x, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var n) ? n : 0).Where(n => n >= 1 && n <= diffs.Count).Distinct().ToList();
         if (picks.Count == 0) { Console.WriteLine("Nothing chosen; no rule written."); return 1; }
 
         var keys = new List<DraftKey>();
@@ -430,7 +430,7 @@ public static partial class Cli
         switch (sub)
         {
             case "import":
-                var gameName = Opt(rest, "--game").FirstOrDefault() ?? throw new ArgumentException("Use: gameopt bench import FILE --game NAME [--label before|after] [--notes TEXT]");
+                var gameName = Opt(rest, "--game").FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli bench import FILE --game NAME [--label before|after] [--notes TEXT]");
                 var label = Opt(rest, "--label").FirstOrDefault() ?? "";
                 var notes = Opt(rest, "--notes").FirstOrDefault();
                 var file = rest.FirstOrDefault() ?? throw new ArgumentException("Give the CSV file.");
@@ -445,11 +445,11 @@ public static partial class Cli
             case "list":
                 var filter = Opt(rest, "--game").FirstOrDefault();
                 var all = BenchmarkStore.All().Where(b => filter is null || b.GameName.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
-                if (all.Count == 0) Console.WriteLine("No benchmarks. 'gameopt bench import FILE --game NAME' adds one.");
+                if (all.Count == 0) Console.WriteLine("No benchmarks. 'optigame-cli bench import FILE --game NAME' adds one.");
                 foreach (var b in all) Console.WriteLine($"{b.Id}  {b.GameName,-28} {b.Label,-8} {b.Summary}{(b.Preferred ? "  [preferred]" : "")}");
                 return 0;
             case "show":
-                var one = BenchmarkStore.Find(rest.FirstOrDefault() ?? "") ?? throw new ArgumentException("Use: gameopt bench show ID");
+                var one = BenchmarkStore.Find(rest.FirstOrDefault() ?? "") ?? throw new ArgumentException("Use: optigame-cli bench show ID");
                 Console.WriteLine($"{one.GameName}, {one.Label}, imported {one.Imported:g} from {one.SourceFile} ({one.SourceFormat})");
                 Console.WriteLine(string.Create(inv, $"  {one.Metrics.Frames} frames over {one.Metrics.DurationSeconds:0.#} s"));
                 Console.WriteLine(string.Create(inv, $"  Average FPS {one.Metrics.AverageFps:0.#} (frames / time)"));
@@ -459,7 +459,7 @@ public static partial class Cli
                 if (one.Notes is not null) Console.WriteLine($"  Notes: {one.Notes}");
                 return 0;
             case "compare":
-                if (rest.Count != 2) throw new ArgumentException("Use: gameopt bench compare ID_A ID_B");
+                if (rest.Count != 2) throw new ArgumentException("Use: optigame-cli bench compare ID_A ID_B");
                 var a = BenchmarkStore.Find(rest[0]) ?? throw new ArgumentException($"No benchmark '{rest[0]}'.");
                 var b2 = BenchmarkStore.Find(rest[1]) ?? throw new ArgumentException($"No benchmark '{rest[1]}'.");
                 var c = BenchmarkStore.Compare(a, b2);
@@ -469,14 +469,14 @@ public static partial class Cli
                 Console.WriteLine("These are measurements of two runs; they do not predict other scenes or settings.");
                 return 0;
             case "prefer":
-                BenchmarkStore.SetPreferred(rest.FirstOrDefault() ?? throw new ArgumentException("Use: gameopt bench prefer ID"));
+                BenchmarkStore.SetPreferred(rest.FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli bench prefer ID"));
                 Console.WriteLine("Marked as preferred. It is shown beside the game's recommendation and does not change it.");
                 return 0;
             case "delete":
-                BenchmarkStore.Delete(rest.FirstOrDefault() ?? throw new ArgumentException("Use: gameopt bench delete ID"));
+                BenchmarkStore.Delete(rest.FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli bench delete ID"));
                 Console.WriteLine("Deleted.");
                 return 0;
-            default: throw new ArgumentException("Use: gameopt bench import|list|show|compare|prefer|delete");
+            default: throw new ArgumentException("Use: optigame-cli bench import|list|show|compare|prefer|delete");
         }
     }
 
@@ -490,7 +490,7 @@ public static partial class Cli
         {
             case "export":
                 bool noRules = Flag(rest, "--no-rules");
-                var file = rest.FirstOrDefault() ?? throw new ArgumentException("Use: gameopt prefs export FILE [--no-rules]");
+                var file = rest.FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli prefs export FILE [--no-rules]");
                 File.WriteAllText(file, PrefsTransfer.Export(Prefs.Load(), includeRules: !noRules));
                 Console.WriteLine($"Exported to {file}. It holds profiles, choices, kept settings{(noRules ? "" : " and your rules")}; no saves, backups or benchmarks.");
                 return 0;
@@ -499,7 +499,7 @@ public static partial class Cli
                 var policy = Flag(rest, "--take-imported") ? ConflictPolicy.TakeImported : ConflictPolicy.KeepMine;
                 bool apply = Flag(rest, "--apply");
                 var maps = Opt(rest, "--map").Select(m => m.Split('=', 2)).Where(p => p.Length == 2).ToDictionary(p => p[0], p => p[1], StringComparer.OrdinalIgnoreCase);
-                var path = rest.FirstOrDefault() ?? throw new ArgumentException("Use: gameopt prefs import FILE [--replace] [--take-imported] [--map OLD=NEW]... [--apply]");
+                var path = rest.FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli prefs import FILE [--replace] [--take-imported] [--map OLD=NEW]... [--apply]");
                 var hw = HardwareDetector.Detect();
                 var plan = PrefsTransfer.Analyze(File.ReadAllText(path), Prefs.Load(), mode, policy, maps, displayExists: d => hw.FindDisplay(d) is not null);
                 Console.WriteLine($"Import {(mode == ImportMode.Replace ? "replacing" : "merging into")} your preferences:");
@@ -515,7 +515,7 @@ public static partial class Cli
                 PrefsTransfer.Apply(plan);
                 Console.WriteLine("Imported.");
                 return 0;
-            default: throw new ArgumentException("Use: gameopt prefs export FILE | gameopt prefs import FILE ...");
+            default: throw new ArgumentException("Use: optigame-cli prefs export FILE | optigame-cli prefs import FILE ...");
         }
     }
 

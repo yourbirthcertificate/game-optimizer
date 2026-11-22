@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -208,7 +209,7 @@ public static partial class RequirementSource
     static int? Year(string? date)
     {
         var m = date is null ? null : YearRx().Match(date);
-        return m is { Success: true } ? int.Parse(m.Value) : null;
+        return m is { Success: true } ? int.Parse(m.Value, CultureInfo.InvariantCulture) : null;
     }
 
     /// <summary>The graphics line of one Steam requirements block (HTML).</summary>
