@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using OptiGame.App.ViewModels;
+using OptiGame.Core.Art;
 using OptiGame.Core.Library;
 using OptiGame.Core.Hardware;
 using OptiGame.Core.Optimize;
@@ -231,18 +232,36 @@ public partial class GamesPage : UserControl
 
     void ChangeArt_Click(object sender, RoutedEventArgs e) => OpenMenu(sender, alignRight: false);
 
-    void ArtChoose_Click(object sender, RoutedEventArgs e)
+    void ArtChoose_Click(object sender, RoutedEventArgs e) => ChooseGameImage(ArtSlot.Cover);
+
+    void IconChoose_Click(object sender, RoutedEventArgs e) => ChooseGameImage(ArtSlot.SmallIcon);
+
+    void ChooseGameImage(ArtSlot slot)
     {
         if (_vm.Selected is not { } r) return;
-        var dlg = new Microsoft.Win32.OpenFileDialog { Title = "Choose an image for " + r.Name, Filter = "Images (*.jpg;*.jpeg;*.png;*.webp)|*.jpg;*.jpeg;*.png;*.webp", CheckFileExists = true };
-        if (dlg.ShowDialog(Owner) != true) return;
-        if (!r.ChooseArt(dlg.FileName)) Ui.Info(Owner, "That file is not a JPEG, PNG or WebP image (or it is over 8 MB).", "Change art");
+        var label = slot == ArtSlot.SmallIcon ? "Choose small icon" : "Choose cover";
+        var formats = slot == ArtSlot.SmallIcon ? "*.png;*.ico;*.jpg;*.jpeg;*.webp" : "*.jpg;*.jpeg;*.png;*.webp";
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = label + " for " + r.Name,
+            Filter = "Images (" + formats + ")|" + formats,
+            CheckFileExists = true,
+        };
+        if (dialog.ShowDialog(Owner) != true) return;
+        if (!r.ChooseArt(dialog.FileName, slot))
+            Ui.Info(Owner, "Use a supported image that Windows can open, up to 8 MB.", label);
+    }
+
+    void IconReset_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm.Selected is { } row && !row.ResetSmallIcon())
+            Ui.Info(Owner, "The saved icon could not be removed.", "Reset small icon");
     }
 
     async void ArtRefetch_Click(object sender, RoutedEventArgs e)
     {
         if (_vm.Selected is not { } r) return;
-        OptiGame.Core.Art.ArtService.Reset(r.Game);
+        ArtService.Reset(r.Game);
         await r.LoadArtAsync(_vm.Live.Settings.FetchArt, _vm.Live.Store.Data.SteamGridDbKey);
     }
 

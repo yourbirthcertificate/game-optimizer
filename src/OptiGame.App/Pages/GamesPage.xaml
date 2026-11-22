@@ -16,9 +16,9 @@
                 <Border Width="40" Height="40" CornerRadius="4" ClipToBounds="True" Background="{Binding Tile}">
                     <Grid>
                         <TextBlock Text="{Binding Initials}" Foreground="White" FontWeight="SemiBold" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Visibility="{Binding ShowInitials, Converter={StaticResource BoolToVis}}" />
-                        <Image Source="{Binding Art}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"
-                               Visibility="{Binding HasArt, Converter={StaticResource BoolToVis}}" />
+                                   Visibility="{Binding ShowSmallInitials, Converter={StaticResource BoolToVis}}" />
+                        <Image Source="{Binding SmallIcon}" Stretch="{Binding SmallIconStretch}" RenderOptions.BitmapScalingMode="HighQuality"
+                               Visibility="{Binding HasSmallIcon, Converter={StaticResource BoolToVis}}" />
                     </Grid>
                 </Border>
                 <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
@@ -195,8 +195,20 @@
                                     <Grid>
                                         <TextBlock Text="{Binding Initials}" Foreground="#38FFFFFF" FontSize="64" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,24,0"
                                                    Visibility="{Binding ShowInitials, Converter={StaticResource BoolToVis}}" />
-                                        <Image Source="{Binding Art}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"
-                                               Visibility="{Binding HasArt, Converter={StaticResource BoolToVis}}" />
+                                        <Image Source="{Binding Art}" RenderOptions.BitmapScalingMode="HighQuality"
+                                               Visibility="{Binding HasArt, Converter={StaticResource BoolToVis}}">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <Setter Property="Stretch" Value="UniformToFill" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsIcon}" Value="True">
+                                                            <Setter Property="Stretch" Value="Uniform" />
+                                                            <Setter Property="StretchDirection" Value="DownOnly" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
                                     </Grid>
                                 </Border>
                                 <StackPanel Margin="16,12,16,14">
@@ -220,11 +232,14 @@
                                         <Button Content="{Binding Live.UseGpuText}" Click="UseGpu_Click" Margin="0,0,6,6" Visibility="{Binding CanFixGpu, Converter={StaticResource BoolToVis}}"
                                                 ToolTip="Tell Windows to run this game on your dedicated graphics card. Takes effect the next time the game starts." />
                                         <Button Content="Can this PC run it?" Click="SpecCheck_Click" Margin="0,0,6,6" IsEnabled="{Binding HasSpecCheck}" ToolTip="{Binding SpecCheckTip}" />
-                                        <Button Content="Change art…" Click="ChangeArt_Click" Style="{StaticResource GhostButton}" Margin="0,0,6,6" ToolTip="{Binding ArtSource, StringFormat=Art from {0}}">
+                                        <Button Content="Cover and icon…" Click="ChangeArt_Click" Style="{StaticResource GhostButton}" Margin="0,0,6,6" ToolTip="{Binding ArtSource, StringFormat=Cover from {0}}">
                                             <Button.ContextMenu>
                                                 <ContextMenu>
-                                                    <MenuItem Header="Choose an image…" Click="ArtChoose_Click" />
-                                                    <MenuItem Header="Fetch it again" Click="ArtRefetch_Click" />
+                                                    <MenuItem Header="Choose cover…" Click="ArtChoose_Click" />
+                                                    <MenuItem Header="Reset cover and fetch again" Click="ArtRefetch_Click" />
+                                                    <Separator />
+                                                    <MenuItem Header="Choose small icon…" Click="IconChoose_Click" />
+                                                    <MenuItem Header="Reset small icon" Click="IconReset_Click" />
                                                 </ContextMenu>
                                             </Button.ContextMenu>
                                         </Button>
