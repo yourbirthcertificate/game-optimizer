@@ -37,6 +37,7 @@ internal sealed class ReviewedConfigSource(IReadOnlyList<ReviewedLocation>? pack
                 {
                     "xml" when Optimize.Planner.IsEldenRing(search.Game) => Optimize.Planner.IsEldenRingSettings,
                     "config" when Optimize.Planner.IsHelldivers(search.Game) => Optimize.Planner.IsHelldiversSettings,
+                    "ini" when Optimize.Planner.IsZomboid(search.Game) => Optimize.Planner.IsZomboidSettings,
                     _ => null,
                 });
         }

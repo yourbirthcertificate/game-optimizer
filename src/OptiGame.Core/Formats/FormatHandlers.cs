@@ -18,6 +18,7 @@ internal static class FormatHandlers
     {
         ["xml"] = new XmlSettingsHandler(),
         [SjsonSettings.Format] = new SjsonSettingsHandler(),
+        [FlatIniSettings.Format] = new FlatIniHandler(),
     };
 
     public static IFormatHandler? Find(string format) => Handlers.GetValueOrDefault(format);
