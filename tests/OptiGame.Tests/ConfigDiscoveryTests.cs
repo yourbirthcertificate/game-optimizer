@@ -142,7 +142,7 @@ public sealed class ConfigDiscoveryTests : IDisposable
     }
 
     [Fact]
-    public void Finds_bundled_config_by_exact_steam_id_without_promoting_an_unsupported_format()
+    public void Finds_bundled_config_by_exact_steam_id_without_promoting_an_unrecognized_file()
     {
         var path = Write(At("Roaming", "Arrowhead", "Helldivers2", "user_settings.config"), "adapter_index = 0");
         var finder = new ConfigFinder(_roots, _ => null);
@@ -154,7 +154,7 @@ public sealed class ConfigDiscoveryTests : IDisposable
         Assert.Equal(ConfigConfidence.Present, entry.Confidence);
         Assert.Contains(entry.Evidence, item => item.Url?.Host == "arrowhead.zendesk.com" &&
             item.Reviewed == new DateOnly(2026, 11, 22));
-        Assert.Contains(result.Diagnostics, item => item.Code == "unverified-format");
+        Assert.Contains(result.Diagnostics, item => item.Code == "unrecognized-content");
         Assert.Empty(finder.Find(Game("Alternate display title", "553851")).Candidates);
         Assert.Empty(finder.Find(Game("Alternate display title", store: "GOG"), new(LinkedSteamAppId: "553850")).Candidates);
     }
