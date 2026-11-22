@@ -1,0 +1,76 @@
+<UserControl x:Class="OptiGame.App.Pages.AppsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="TierChip" TargetType="Border" BasedOn="{StaticResource Chip}">
+            <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBackgroundBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tier}" Value="Review"><Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" /></DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="36,24,36,32" MaxWidth="1040">
+            <TextBlock Text="Apps" Style="{StaticResource PageTitle}" />
+            <TextBlock Text="Ranked by memory. OptiGame+ only suggests: nothing closes until you click, and apps are asked politely to close first." Style="{StaticResource Secondary}" />
+
+            <Grid Margin="0,18,0,12">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Button Content="{Binding CloseText}" Style="{DynamicResource AccentButtonStyle}" IsEnabled="{Binding CanClose}" Click="CloseSelected_Click" Height="34" MinWidth="150" />
+                <Button Grid.Column="1" Content="Select recommended" Margin="8,0,0,0" Height="34" Click="SelectRecommended_Click" />
+                <Button Grid.Column="2" Content="Select none" Margin="8,0,0,0" Height="34" Click="SelectNone_Click" />
+                <TextBlock Grid.Column="3" Text="{Binding SelectionText}" Style="{StaticResource Secondary}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding AppsView}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="14,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="96" /><ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Margin="0,0,12,0" VerticalAlignment="Center" AutomationProperties.Name="{Binding Name}" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Secondary}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0">
+                                    <Border Style="{StaticResource Chip}" Background="{DynamicResource AccentFillColorSecondaryBrush}" Margin="0,0,6,0"
+                                            Visibility="{Binding Learned, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="Learned" FontSize="12" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                    </Border>
+                                    <Border Style="{StaticResource TierChip}"><TextBlock Text="{Binding TierText}" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" /></Border>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                    <TextBlock Text="{Binding MemText}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    <TextBlock Text="{Binding CpuText}" Style="{StaticResource Secondary}" HorizontalAlignment="Right" />
+                                </StackPanel>
+                                <Button Grid.Column="4" Content="Keep" Style="{StaticResource GhostButton}" Margin="6,0,0,0" Click="KeepApp_Click"
+                                        ToolTip="Never suggest closing this again" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Padding="24" HorizontalAlignment="Stretch">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource Card}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasApps}" Value="False"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE73E;" Style="{StaticResource IconText}" FontSize="28" HorizontalAlignment="Center" Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
+                    <TextBlock Text="Nothing to clear" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                    <TextBlock Text="No background apps worth closing right now." Style="{StaticResource Secondary}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="{Binding ProtectedSummary}" Style="{StaticResource Secondary}" Margin="2,14,0,0" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -34,7 +34,7 @@ Open a pull request (or an issue if you prefer) with:
 - the before/after evidence, as text. The output of `gameopt rule diff BEFORE.json AFTER.json`
   is enough. Remove anything personal first (account names, user ids, paths with your
   username); keep only the keys that matter;
-- for a new format quirk, a small synthetic test file in `tests/GameOptimizer.Tests/fixtures`
+- for a new format quirk, a small synthetic test file in `tests/OptiGame.Tests/fixtures`
   rather than your real save.
 
 Please do not send real save files, full registry exports or benchmark captures; they can hold

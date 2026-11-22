@@ -246,10 +246,10 @@ You need the .NET 10 SDK.
 
 ```
 dotnet test
-dotnet run --project src/GameOptimizer.App
-dotnet run --project src/GameOptimizer.Cli -- scan
-dotnet publish src/GameOptimizer.App -c Release -r win-x64
-dotnet publish src/GameOptimizer.Cli -c Release -r win-x64
+dotnet run --project src/OptiGame.App
+dotnet run --project src/OptiGame.Cli -- scan
+dotnet publish src/OptiGame.App -c Release -r win-x64
+dotnet publish src/OptiGame.Cli -c Release -r win-x64
 ```
 
 ## Known limits
