@@ -60,5 +60,5 @@ public sealed class HardwareInfo
     public List<string> Reasons { get; set; } = new();
 
     public override string ToString() =>
-        $"{Cpu} ({CpuCores}C/{CpuThreads}T), {RamGb:0.#} GB RAM, {Gpu} ({GpuVramGb:0.#} GB), main display {Primary.ActiveModeText}";
+        string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{Cpu} ({CpuCores}C/{CpuThreads}T), {RamGb:0.#} GB RAM, {Gpu} ({GpuVramGb:0.#} GB), main display {Primary.ActiveModeText}");
 }

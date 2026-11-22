@@ -3,6 +3,22 @@
 Versions follow [Semantic Versioning](https://semver.org). The number lives in one place,
 `Directory.Build.props`; the app, the setup program, the updater and the exe properties all read it.
 
+## Unreleased
+
+- Fixed menus and tooltips on icon buttons showing boxes instead of text (popups inherited the icon font). One set of
+  styles now pins the text font for every menu, menu item and tooltip. The More menu opens under its button.
+- Cyberpunk 2077 (REDengine 4) is supported: quality steps map to the game's own options in `UserSettings.json`, edited
+  in place (only `value` and a list's `index` change), with backup, preview and key-level undo. Ray tracing is only ever
+  switched off at Low and Medium, never on.
+- Skipped games now say where their settings probably are when a folder named after the game exists, and offer Open
+  settings folder. `optigame-cli why --all-skipped` lists every skipped game with its reason.
+- Numbers written to files, exports and benchmark records no longer depend on the PC's regional format. The audit found
+  one real leak: the hardware description stored with a benchmark used the regional decimal separator ("15,7 GB RAM" on
+  a nl-NL PC). Settings files, rules and exports were already invariant; other calls now say so explicitly.
+  `.editorconfig` makes culture-sensitive calls a build warning, and tests run the writers under nl-NL.
+- The detail panel is hidden when no game matches the search.
+- Added `AGENTS.md` and a handoff document for further engine work.
+
 ## 1.0.0
 
 The first OptiGame+ release: GameOptimizer 0.2.0 and GameClear 1.0.0 merged into one app.

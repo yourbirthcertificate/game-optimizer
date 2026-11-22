@@ -50,6 +50,11 @@ public static class EngineDetector
             }
         }
 
+        // REDengine 4 (Cyberpunk 2077): an archive/pc/content folder, an r6 folder and bin/x64/Cyberpunk2077.exe.
+        if (Directory.Exists(Path.Combine(root, "archive", "pc", "content")) && Directory.Exists(Path.Combine(root, "r6"))
+            && File.Exists(Path.Combine(root, "bin", "x64", "Cyberpunk2077.exe")))
+        { g.Engine = GameEngine.RedEngine; g.EngineDetail = "Cyberpunk 2077"; return; }
+
         // Source 2: game/<mod>/gameinfo.gi. Source 1: <mod>/gameinfo.txt.
         var game = Path.Combine(root, "game");
         if (Directory.Exists(game))

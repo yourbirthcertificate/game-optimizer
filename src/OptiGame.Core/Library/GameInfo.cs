@@ -1,6 +1,6 @@
 namespace OptiGame.Core.Library;
 
-public enum GameEngine { Unknown, Unreal, Unity, Source, Source2, Godot, GameMaker, Other }
+public enum GameEngine { Unknown, Unreal, Unity, Source, Source2, Godot, GameMaker, Other, RedEngine }
 
 public sealed class GameInfo
 {

@@ -22,6 +22,7 @@ public sealed class OptimizerSession
 
     public static OptimizerSession Load(HardwareInfo? hw = null)
     {
+        SettingsLocator.Reset();
         var prefs = Prefs.Load();
         prefs.ApplySharedCaches();
         var s = new OptimizerSession { Hw = hw ?? HardwareDetector.Detect(), Scan = LibraryScanner.Scan(prefs.ManualGames), Prefs = prefs };
@@ -34,6 +35,7 @@ public sealed class OptimizerSession
 
     public void Rescan()
     {
+        SettingsLocator.Reset();
         Scan = LibraryScanner.Scan(Prefs.ManualGames);
         var errors = new List<string>();
         Rules = RuleSet.Load(errors);
@@ -128,7 +130,7 @@ public static class SettingsParser
         {
             case "quality":
                 if (inherit) { s.Quality = null; break; }
-                if (val.StartsWith("offset:", StringComparison.OrdinalIgnoreCase) && int.TryParse(val[7..], out var off) && Math.Abs(off) <= Prefs.MaxOffset)
+                if (val.StartsWith("offset:", StringComparison.OrdinalIgnoreCase) && int.TryParse(val[7..], NumberStyles.Integer, Inv, out var off) && Math.Abs(off) <= Prefs.MaxOffset)
                     s.Quality = new QualityPref { Mode = QualityMode.Offset, Offset = off };
                 else if (val.StartsWith("fixed:", StringComparison.OrdinalIgnoreCase) && QualitySteps.TryParse(val[6..], out var st))
                     s.Quality = new QualityPref { Mode = QualityMode.Fixed, Step = st };
@@ -152,7 +154,7 @@ public static class SettingsParser
                     "keep" => new ResolutionPref { Mode = ResolutionMode.Keep },
                     "native" => new ResolutionPref { Mode = ResolutionMode.Native },
                     "current" => new ResolutionPref { Mode = ResolutionMode.Current },
-                    _ when val.Split('x', 'X') is [var a, var b] && int.TryParse(a, out var w) && int.TryParse(b, out var h) && w > 0 && h > 0
+                    _ when val.Split('x', 'X') is [var a, var b] && int.TryParse(a, NumberStyles.Integer, Inv, out var w) && int.TryParse(b, NumberStyles.Integer, Inv, out var h) && w > 0 && h > 0
                         => new ResolutionPref { Mode = ResolutionMode.Custom, Width = w, Height = h },
                     _ => throw new ArgumentException("resolution must be keep, native, current, WxH or inherit."),
                 };

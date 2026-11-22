@@ -151,7 +151,7 @@ public sealed partial class GameRow
         }
         foreach (var n in new[] { nameof(ChangesTitle), nameof(HasChangeItems), nameof(NoChangesText), nameof(ApplyText), nameof(CanApply), nameof(ShowRunningBanner),
                                   nameof(RunningText), nameof(ChangedFile), nameof(HasSkipReason), nameof(NotControlledVisible), nameof(StepSummary), nameof(StatusDot), nameof(RowStatus),
-                                  nameof(QualityNote), nameof(RecommendedLine), nameof(RecMarkers), nameof(IsSkipped) })
+                                  nameof(QualityNote), nameof(RecommendedLine), nameof(RecMarkers), nameof(IsSkipped), nameof(SkipDetailText) })
             Raise(n);
     }
 
@@ -163,6 +163,8 @@ public sealed partial class GameRow
     public bool ShowRunningBanner => _plan?.Status == PlanStatus.Running;
     public string RunningText => $"{Name} is running. Close it to apply changes: its settings are open in the game.";
     public bool IsSkipped => _plan?.Status == PlanStatus.Skipped;
+    /// <summary>Why a skipped game was skipped beyond the one-line status: what was looked at, and where its settings probably are.</summary>
+    public string SkipDetailText => _plan?.Status == PlanStatus.Skipped ? string.Join(Environment.NewLine, (_plan.Skipped.Count > 0 ? _plan.Skipped : new()).Where(x => x.Length > 0).Distinct()) : "";
     public bool HasSkipReason => IsSkipped;
     public bool NotControlledVisible => HasNotControlled;
     public string StepSummary => IsSkipped ? "Skipped" : StepLabel;

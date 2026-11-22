@@ -73,16 +73,16 @@
             </Grid.ColumnDefinitions>
             <StackPanel>
                 <TextBlock Text="Games" Style="{StaticResource PageTitle}" />
-                <TextBlock Text="{Binding Status}" Style="{StaticResource Secondary}" TextTrimming="CharacterEllipsis" MaxWidth="360" />
+                <TextBlock Text="{Binding Status}" Style="{StaticResource Secondary}" TextTrimming="CharacterEllipsis" MaxWidth="250" ToolTip="{Binding Status}" />
             </StackPanel>
-            <ListBox Grid.Column="1" Style="{StaticResource Segmented}" SelectedIndex="{Binding FilterIndex, Mode=TwoWay}" VerticalAlignment="Bottom" Margin="24,0,0,2"
+            <ListBox Grid.Column="1" Style="{StaticResource Segmented}" SelectedIndex="{Binding FilterIndex, Mode=TwoWay}" VerticalAlignment="Bottom" Margin="16,0,0,2"
                      AutomationProperties.Name="Which games to show">
                 <ListBoxItem Content="{Binding CanChangeLabel}" />
                 <ListBoxItem Content="{Binding SkippedLabel}" />
                 <ListBoxItem Content="{Binding AllLabel}" />
             </ListBox>
             <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,0,2">
-                <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="170" Margin="0,0,8,0" AutomationProperties.Name="Search games"
+                <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="140" Margin="0,0,8,0" AutomationProperties.Name="Search games"
                          ToolTip="Search games" />
                 <Button Style="{StaticResource GhostButton}" Content="&#xE72C;" FontFamily="{StaticResource Icons}" Click="Rescan_Click" ToolTip="Rescan (F5)" AutomationProperties.Name="Rescan" />
                 <Button Style="{StaticResource GhostButton}" Content="&#xE8F4;" FontFamily="{StaticResource Icons}" Click="AddFolder_Click" ToolTip="Add a game folder" AutomationProperties.Name="Add a game folder" />
@@ -183,7 +183,7 @@
             </Grid>
 
             <!-- ============ detail ============ -->
-            <Grid Grid.Column="2" DataContext="{Binding Selected}">
+            <Grid Grid.Column="2" DataContext="{Binding Selected}" Visibility="{Binding DataContext.HasSelected, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}">
                 <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="0,0,10,0">
@@ -247,8 +247,10 @@
                         <Border Style="{StaticResource Card}" Margin="0,8,0,0" Visibility="{Binding IsSkipped, Converter={StaticResource BoolToVis}}">
                             <StackPanel>
                                 <TextBlock Text="Skipped" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding StatusText}" Style="{StaticResource Secondary}" FontSize="13" Margin="0,3,0,10" />
+                                <TextBlock Text="{Binding StatusText}" Style="{StaticResource Secondary}" FontSize="13" Margin="0,3,0,4" />
+                                <TextBlock Text="{Binding SkipDetailText}" Style="{StaticResource Secondary}" FontSize="13" Margin="0,0,0,10" />
                                 <WrapPanel>
+                                    <Button Content="Open settings folder" Click="OpenFolder_Click" Margin="0,0,6,0" Visibility="{Binding CanOpenFolder, Converter={StaticResource BoolToVis}}" />
                                     <Button Content="Add a rule" Click="AddRule_Click" Margin="0,0,6,0" Visibility="{Binding CanAddRule, Converter={StaticResource BoolToVis}}" />
                                     <Button Content="Launch once, then rescan" Click="Launch_Click" Visibility="{Binding CanLaunch, Converter={StaticResource BoolToVis}}" />
                                 </WrapPanel>

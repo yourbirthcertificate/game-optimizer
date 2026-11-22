@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Diagnostics;
 using System.Management;
 using System.Runtime.InteropServices;
@@ -80,16 +81,16 @@ public static partial class HardwareDetector
                 foreach (var o in s.Get())
                 {
                     hw.Cpu = (o["Name"] as string ?? hw.Cpu).Trim();
-                    hw.CpuCores = Convert.ToInt32(o["NumberOfCores"] ?? 0);
-                    hw.CpuThreads = Convert.ToInt32(o["NumberOfLogicalProcessors"] ?? 0);
+                    hw.CpuCores = Convert.ToInt32(o["NumberOfCores"] ?? 0, CultureInfo.InvariantCulture);
+                    hw.CpuThreads = Convert.ToInt32(o["NumberOfLogicalProcessors"] ?? 0, CultureInfo.InvariantCulture);
                     break;
                 }
             using (var s = new ManagementObjectSearcher("SELECT TotalPhysicalMemory, Manufacturer, Model, PCSystemType FROM Win32_ComputerSystem"))
                 foreach (var o in s.Get())
                 {
-                    hw.RamGb = Math.Round(Convert.ToDouble(o["TotalPhysicalMemory"] ?? 0) / (1L << 30), 1);
+                    hw.RamGb = Math.Round(Convert.ToDouble(o["TotalPhysicalMemory"] ?? 0, CultureInfo.InvariantCulture) / (1L << 30), 1);
                     hw.Model = $"{o["Manufacturer"]} {o["Model"]}".Trim();
-                    hw.IsLaptop = Convert.ToInt32(o["PCSystemType"] ?? 0) == 2;
+                    hw.IsLaptop = Convert.ToInt32(o["PCSystemType"] ?? 0, CultureInfo.InvariantCulture) == 2;
                     break;
                 }
             var gpus = new List<string>();
@@ -176,9 +177,9 @@ public static partial class HardwareDetector
         double s = GpuScore(hw.Gpu);
         hw.Reasons.Add($"GPU class score {s:+0.0;-0.0} for {hw.Gpu}");
         long px = (long)hw.NativeWidth * hw.NativeHeight;
-        if (px >= 3840L * 2160 * 9 / 10) { s -= 1.0; hw.Reasons.Add($"4K-class screen: {-1.0:0.0}"); }
-        else if (px >= 2560L * 1440 * 9 / 10) { s -= 0.5; hw.Reasons.Add($"1440p-class screen: {-0.5:0.0}"); }
-        if (hw.CpuThreads is > 0 and < 8) { s -= 0.5; hw.Reasons.Add($"{hw.CpuThreads} CPU threads: {-0.5:0.0}"); }
+        if (px >= 3840L * 2160 * 9 / 10) { s -= 1.0; hw.Reasons.Add(string.Create(CultureInfo.InvariantCulture, $"4K-class screen: {-1.0:0.0}")); }
+        else if (px >= 2560L * 1440 * 9 / 10) { s -= 0.5; hw.Reasons.Add(string.Create(CultureInfo.InvariantCulture, $"1440p-class screen: {-0.5:0.0}")); }
+        if (hw.CpuThreads is > 0 and < 8) { s -= 0.5; hw.Reasons.Add(string.Create(CultureInfo.InvariantCulture, $"{hw.CpuThreads} CPU threads: {-0.5:0.0}")); }
         hw.Score = Math.Round(s, 2);
 
         var step = s switch

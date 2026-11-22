@@ -402,6 +402,20 @@ public static class Applier
                 }
                 return (Encoding.UTF8.GetBytes(root.ToJsonString(new JsonSerializerOptions { WriteIndented = current.Contains((byte)'\n') })), keys);
             }
+            case "red":
+            {
+                // REDengine UserSettings.json: put back the recorded options in place (value, and a list's index), nothing else.
+                var red = RedSettingsFile.Parse(current);
+                foreach (var c in changes)
+                {
+                    var parts = c.Locator.Split('|');
+                    if (parts is not ["red", var group, var name]) throw new FormatException($"bad locator {c.Locator}");
+                    if (Decide(c.Setting, red.GetRaw(group, name), c) != KeyState.Revert) continue;
+                    string err = "";
+                    if (c.OldRaw is null || !red.TrySet(group, name, c.OldRaw, out err)) throw new FormatException(err.Length > 0 ? err : $"{name} could not be restored");
+                }
+                return (red.ToBytes(), keys);
+            }
             case "gvas":
             {
                 var sav = GvasFile.Load(current);

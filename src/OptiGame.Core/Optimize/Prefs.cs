@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using OptiGame.Core.Hardware;
@@ -192,7 +193,7 @@ public sealed class Prefs
             : (Shift(recommended, q.Offset + GlobalOffset), q.Offset == 0 && GlobalOffset == 0 ? "recommended" : $"recommendation {Signed(q.Offset + GlobalOffset)} step(s)");
     }
 
-    static string Signed(int n) => n > 0 ? "+" + n : n.ToString();
+    static string Signed(int n) => n > 0 ? "+" + n.ToString(CultureInfo.InvariantCulture) : n.ToString(CultureInfo.InvariantCulture);
 
     public Profile ProfileFor(string gameId) => FindProfile(GameOrNull(gameId)?.ProfileId) ?? DefaultProfile;
 

@@ -290,7 +290,7 @@ public sealed class GvasProperty
 
     bool IsEnumOrEnumProp => Type == "EnumProperty" || IsEnumByte;
 
-    static string Describe(object v) => v switch { int[] a => $"[{string.Join(",", a)}]", string s => $"\"{s}\"", _ => v.ToString() ?? "null" };
+    static string Describe(object v) => v switch { int[] a => $"[{string.Join(",", a.Select(i => i.ToString(System.Globalization.CultureInfo.InvariantCulture)))}]", string s => $"\"{s}\"", _ => Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture) ?? "null" };
     static bool TryLong(object v, out long l)
     {
         switch (v) { case int i: l = i; return true; case long x: l = x; return true; case double d when d == Math.Floor(d): l = (long)d; return true; }

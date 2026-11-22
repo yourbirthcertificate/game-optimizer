@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -61,7 +62,7 @@ public static class PrefsTransfer
         {
             ["format"] = FormatName,
             ["version"] = FormatVersion,
-            ["exported"] = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
+            ["exported"] = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture),
             ["portable"] = new JsonObject
             {
                 ["globalOffset"] = p.GlobalOffset,

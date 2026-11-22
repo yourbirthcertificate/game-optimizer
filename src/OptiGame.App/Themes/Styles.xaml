@@ -10,6 +10,25 @@
     <FontFamily x:Key="Display">Segoe UI Variable Display, Segoe UI</FontFamily>
     <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
+    <!--
+        Popups take their font from the element they open from. A ContextMenu or ToolTip on an icon button (Segoe Fluent
+        Icons, which has no letters) would therefore show boxes. These implicit styles pin the text font for every menu,
+        menu item and tooltip in the app, on top of the Fluent theme's own styles.
+    -->
+    <FontFamily x:Key="TextFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <Style TargetType="ContextMenu" BasedOn="{StaticResource {x:Type ContextMenu}}">
+        <Setter Property="FontFamily" Value="{StaticResource TextFont}" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+    <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="FontFamily" Value="{StaticResource TextFont}" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+    <Style TargetType="ToolTip" BasedOn="{StaticResource {x:Type ToolTip}}">
+        <Setter Property="FontFamily" Value="{StaticResource TextFont}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
     <!-- Win11 "card": layer fill, hairline stroke, 8px corners -->
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />

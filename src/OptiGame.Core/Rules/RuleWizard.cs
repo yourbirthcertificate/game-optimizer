@@ -194,7 +194,7 @@ public static class RuleBuilder
                 break;
             case "intpoint":
                 var parts = text.Split('x', ',', ' ').Where(x => x.Length > 0).ToArray();
-                if (parts.Length == 2 && int.TryParse(parts[0], out var w) && int.TryParse(parts[1], out var h)) return new JsonArray(w, h);
+                if (parts.Length == 2 && int.TryParse(parts[0], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var w) && int.TryParse(parts[1], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var h)) return new JsonArray(w, h);
                 break;
             default: return JsonValue.Create(text)!;
         }
