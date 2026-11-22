@@ -47,7 +47,7 @@ public sealed class CultureTests : IDisposable
             CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
             var inv = make();
             CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = Dutch;
-            Assert.Equal("5,0", 5.0.ToString("0.0"));                          // the test really runs under a comma culture
+            Assert.Equal("5,0", 5.0.ToString("0.0", CultureInfo.CurrentCulture));                          // the test really runs under a comma culture
             var nl = make();
             Assert.Equal(inv, nl);
             return nl;

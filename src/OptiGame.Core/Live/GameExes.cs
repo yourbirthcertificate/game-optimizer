@@ -16,6 +16,8 @@ public static class GameExes
 
     const long BigExe = 20L * 1024 * 1024;
 
+    internal static bool IsExcludedName(string name) => SkipWords.Any(name.ToLowerInvariant().Contains);
+
     /// <summary>The game's main executables: Unreal "-Shipping" builds, large exes, and Unity players. At most <paramref name="max"/>.</summary>
     public static List<string> Find(string installDir, int max = 6)
     {
@@ -36,8 +38,8 @@ public static class GameExes
         bool unity = Directory.Exists(System.IO.Path.Combine(dir.FullName, "MonoBleedingEdge")) || File.Exists(System.IO.Path.Combine(dir.FullName, "UnityPlayer.dll"));
         foreach (var f in files)
         {
+            if (IsExcludedName(f.Name)) continue;
             var lower = f.Name.ToLowerInvariant();
-            if (SkipWords.Any(lower.Contains)) continue;
             if (lower.EndsWith("-shipping.exe") || lower.EndsWith("-wingdk-shipping.exe")) found.Add((f.FullName, 3));
             else if (unity) found.Add((f.FullName, 2));
             else if (f.Length >= BigExe) found.Add((f.FullName, 2));

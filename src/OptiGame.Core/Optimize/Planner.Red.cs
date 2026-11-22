@@ -17,8 +17,10 @@ public static partial class Planner
     /// <summary>The LocalAppData folder used to find settings files. Tests point it at a temporary folder.</summary>
     internal static string LocalAppData { get; set; } = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
-    public static string RedSettingsPath(GameInfo g) =>
-        Path.Combine(LocalAppData, "CD Projekt Red", string.IsNullOrEmpty(g.EngineDetail) ? "Cyberpunk 2077" : g.EngineDetail, "UserSettings.json");
+    public static string RedSettingsPath(GameInfo g) => RedSettingsPath(g, LocalAppData);
+
+    internal static string RedSettingsPath(GameInfo g, string local) =>
+        Path.Combine(local, "CD Projekt Red", string.IsNullOrEmpty(g.EngineDetail) ? "Cyberpunk 2077" : g.EngineDetail, "UserSettings.json");
 
     /// <summary>(group, option, category) for every list option that follows the quality step. Anisotropy is a list of numbers.</summary>
     static readonly (string Group, string Name, string Category, int Skip)[] RedQualityOptions =

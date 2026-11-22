@@ -215,12 +215,14 @@ public sealed class Prefs
 
     // ------------------------------------------------------------------ load, migrate, save
 
-    public static Prefs Load()
+    public static Prefs Load() => Load(keepV1Copy: true);
+
+    internal static Prefs Load(bool keepV1Copy)
     {
         try
         {
             if (File.Exists(AppPaths.PrefsFile))
-                return Parse(File.ReadAllText(AppPaths.PrefsFile), out bool migrated, keepV1Copy: true);
+                return Parse(File.ReadAllText(AppPaths.PrefsFile), out _, keepV1Copy);
         }
         catch (Exception e) when (e is JsonException or IOException or NotSupportedException) { }
         return new Prefs();
