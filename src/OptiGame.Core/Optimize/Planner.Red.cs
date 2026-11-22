@@ -63,7 +63,7 @@ public static partial class Planner
         plan.SettingsFolder = Path.GetDirectoryName(path);
         byte[] original = File.ReadAllBytes(path);
         RedSettingsFile file;
-        try { file = RedSettingsFile.Parse(original); }
+        try { file = FormatHandlers.Red.Read(original).Content; }
         catch (FormatException e) { plan.Skip(SkipKind.UnsupportedFormat, "UserSettings.json could not be read: " + e.Message, plan.SettingsFolder); return; }
         if (file.Options.Count == 0) { plan.Skip(SkipKind.UnsupportedFormat, "UserSettings.json has no options this tool recognises", plan.SettingsFolder); return; }
 

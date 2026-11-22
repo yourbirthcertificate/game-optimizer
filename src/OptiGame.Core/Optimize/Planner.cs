@@ -1,7 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using OptiGame.Core.Formats;
 using OptiGame.Core.Hardware;
 using OptiGame.Core.Library;
@@ -97,7 +94,7 @@ public static partial class Planner
     }
 
     /// <summary>True when the change goes ahead; otherwise it is recorded as kept.</summary>
-    static bool Want(GamePlan plan, OptimizeRequest req, string id, string category, string label, string? old, string @new)
+    internal static bool Want(GamePlan plan, OptimizeRequest req, string id, string category, string label, string? old, string @new)
     {
         if (req.WhyKept(id, category) is not { } why) return true;
         plan.Excluded.Add(new ExcludedChange(id, category, label, old, @new, why));
@@ -148,7 +145,7 @@ public static partial class Planner
         plan.SettingsFolder = Path.GetDirectoryName(path);
         byte[] data = File.ReadAllBytes(path);
         IniDocument ini;
-        try { ini = IniDocument.Parse(data); }
+        try { ini = FormatHandlers.Ini.Read(data).Content; }
         catch (FormatException e) { plan.Skip(SkipKind.UnsupportedFormat, $"GameUserSettings.ini unreadable: {e.Message}", plan.SettingsFolder); return; }
 
         var edit = new FileEdit { Path = path, Original = data, Updated = data, Format = "ini" };
@@ -283,11 +280,11 @@ public static partial class Planner
         if (!File.Exists(path)) { plan.Skip(SkipKind.NotCreatedYet, "No cfg\\video.txt yet. Start the game once so it creates its settings.", dir); return; }
         plan.SettingsFolder = dir;
         var data = File.ReadAllBytes(path);
-        string text;
+        KvSettingsDocument document;
         try
         {
-            text = new System.Text.UTF8Encoding(false, true).GetString(data);
-            if (KvNode.Parse(text)["VideoConfig"] is null) throw new FormatException("no VideoConfig block");
+            document = FormatHandlers.Kv.Read(data);
+            if (document.Root?["VideoConfig"] is null) throw new FormatException("no VideoConfig block");
         }
         catch (Exception e) when (e is FormatException or System.Text.DecoderFallbackException)
         { plan.Skip(SkipKind.UnsupportedFormat, $"video.txt unreadable: {e.Message}", dir); return; }
@@ -320,13 +317,13 @@ public static partial class Planner
 
         foreach (var (k, v, label, cat) in wanted)
         {
-            var probe = text;
-            if (!KvText.TrySet(ref probe, k, v, out var old) || old == v) continue;
-            if (!Want(plan, req, "source:" + k, cat, label, old, v)) continue;
-            text = probe;
-            edit.Changes.Add(new(label, old, v) { Id = "source:" + k, Category = cat, Locator = "kv|" + k, OldRaw = old, NewRaw = v });
+            var locator = "kv|" + k;
+            var old = document.GetRaw(locator);
+            if (old is null || old == v || !Want(plan, req, "source:" + k, cat, label, old, v)) continue;
+            if (!document.TrySet(locator, v)) continue;
+            edit.Changes.Add(new(label, old, v) { Id = "source:" + k, Category = cat, Locator = locator, OldRaw = old, NewRaw = v });
         }
-        edit.Updated = new System.Text.UTF8Encoding(false).GetBytes(text);
+        edit.Updated = document.ToBytes();
         plan.Files.Add(edit);
     }
 
@@ -355,14 +352,12 @@ public static partial class Planner
         var values = ResolveValues(plan, rf, req, vars, fileName);
         try
         {
-            switch (format)
+            if (FormatHandlers.Find(format) is not IRuleFormatHandler handler)
             {
-                case "gvas": EditGvas(plan, req, edit, values); break;
-                case "ini": EditIni(plan, req, edit, values); break;
-                case "json": EditJson(plan, req, edit, values); break;
-                case "kv": EditKv(plan, req, edit, values); break;
-                default: plan.Skip(SkipKind.UnsupportedFormat, $"Kept: {fileName} (unknown format '{rf.Format}' in rule)"); return;
+                plan.Skip(SkipKind.UnsupportedFormat, $"Kept: {fileName} (unknown format '{rf.Format}' in rule)");
+                return;
             }
+            handler.EditRule(plan, req, edit, values);
         }
         catch (FormatException e)
         {
@@ -372,7 +367,7 @@ public static partial class Planner
         plan.Files.Add(edit);
     }
 
-    sealed record RuleValue(string Key, object Value, string Id, string Category);
+    internal sealed record RuleValue(string Key, object Value, string Id, string Category);
 
     static List<RuleValue> ResolveValues(GamePlan plan, RuleFile rf, OptimizeRequest req, IReadOnlyDictionary<string, object> vars, string fileName)
     {
@@ -426,117 +421,7 @@ public static partial class Planner
     }
 
     /// <summary>Typed value as JSON text, the raw form a key-level undo of a save file uses.</summary>
-    public static string GvasRaw(object v) => JsonSerializer.Serialize(v);
-
-    static void EditGvas(GamePlan plan, OptimizeRequest req, FileEdit edit, List<RuleValue> values)
-    {
-        var sav = GvasFile.Load(edit.Original);
-        foreach (var rv in values)
-        {
-            var p = sav.Find(rv.Key);
-            if (p is null) { plan.Skipped.Add($"Kept: {rv.Key} (not in {Path.GetFileName(edit.Path)})"); continue; }
-            var old = p.Get();
-            if (old is null) { plan.Skipped.Add($"Kept: {rv.Key} ({p.Type} values are not editable)"); continue; }
-            object target = (rv.Value, old) switch
-            {
-                (int i, double) => (double)i,
-                (double d, int) => (int)Math.Round(d), // the save stores whole numbers; fractional caps are rounded here
-                _ => rv.Value,
-            };
-            if (Show(old) == Show(target)) continue;
-            if (!Want(plan, req, rv.Id, rv.Category, rv.Key, Show(old), Show(target))) continue;
-            if (!p.TrySet(target, out var err)) { plan.Skipped.Add($"Kept: {err}"); continue; }
-            edit.Changes.Add(new(rv.Key, Show(old), Show(target))
-            { Id = rv.Id, Category = rv.Category, Locator = "gvas|" + p.Name, OldRaw = GvasRaw(old), NewRaw = GvasRaw(target) });
-        }
-        var bytes = sav.Save();
-        GvasFile.Load(bytes); // the new file must parse and round-trip too
-        edit.Updated = bytes;
-    }
-
-    static void EditIni(GamePlan plan, OptimizeRequest req, FileEdit edit, List<RuleValue> values)
-    {
-        var ini = IniDocument.Parse(edit.Original);
-        foreach (var rv in values)
-        {
-            int slash = rv.Key.LastIndexOf('/');
-            if (slash <= 0) { plan.Warnings.Add($"Rule ini key '{rv.Key}' needs the form Section/Key"); continue; }
-            string section = rv.Key[..slash], key = rv.Key[(slash + 1)..];
-            var old = ini.Get(section, key);
-            if (old is null) { plan.Skipped.Add($"Kept: {key} (not in {Path.GetFileName(edit.Path)})"); continue; }
-            var val = IniValue(rv.Value, old);
-            if (old == val) continue;
-            if (!Want(plan, req, rv.Id, rv.Category, key, old, val)) continue;
-            if (ini.Set(section, key, val, addIfMissing: false, out var err))
-                edit.Changes.Add(new(key, old, val) { Id = rv.Id, Category = rv.Category, Locator = $"ini|{section}|{key}", OldRaw = old, NewRaw = val });
-            else plan.Skip(SkipKind.Ambiguous, $"Kept: {err}");
-        }
-        edit.Updated = ini.ToBytes();
-    }
-
-    /// <summary>Formats a value the way the existing ini value is written (True/true/1, 60 / 60.000000).</summary>
-    static string IniValue(object v, string old) => v switch
-    {
-        bool b when old is "True" or "False" => b ? "True" : "False",
-        bool b when old is "true" or "false" => b ? "true" : "false",
-        bool b => b ? "1" : "0",
-        int i when old.Contains('.') => i.ToString("0.000000", Inv),
-        double d when !old.Contains('.') && d == Math.Floor(d) => d.ToString("0", Inv),
-        double d => d.ToString(old.Contains('.') ? "0.000000" : "0.######", Inv),
-        int[] a => string.Join(old.Contains('x') ? "x" : ",", a),
-        _ => Convert.ToString(v, Inv) ?? "",
-    };
-
-    static void EditJson(GamePlan plan, OptimizeRequest req, FileEdit edit, List<RuleValue> values)
-    {
-        JsonNode? root;
-        try { root = JsonNode.Parse(edit.Original, documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }); }
-        catch (JsonException e) { throw new FormatException("not valid JSON: " + e.Message); }
-        if (root is null) throw new FormatException("empty JSON");
-        foreach (var rv in values)
-        {
-            var parts = rv.Key.Split('.');
-            JsonNode? parent = root;
-            foreach (var p in parts[..^1]) parent = parent?[p];
-            if (parent is not JsonObject obj || !obj.TryGetPropertyValue(parts[^1], out var cur) || cur is not JsonValue jv)
-            { plan.Skipped.Add($"Kept: {rv.Key} (not in {Path.GetFileName(edit.Path)})"); continue; }
-            var kind = jv.GetValueKind();
-            JsonNode? nv = (rv.Value, kind) switch
-            {
-                (bool b, JsonValueKind.True or JsonValueKind.False) => JsonValue.Create(b),
-                (int i, JsonValueKind.Number) => JsonValue.Create(i),
-                (double d, JsonValueKind.Number) => JsonValue.Create(d),
-                (string s, JsonValueKind.String) => JsonValue.Create(s),
-                _ => null,
-            };
-            if (nv is null) { plan.Skipped.Add($"Kept: {rv.Key} (rule value does not match its type)"); continue; }
-            var oldText = jv.ToJsonString();
-            var newText = nv.ToJsonString();
-            if (oldText == newText) continue;
-            if (!Want(plan, req, rv.Id, rv.Category, rv.Key, oldText, newText)) continue;
-            obj[parts[^1]] = nv;
-            edit.Changes.Add(new(rv.Key, oldText, newText) { Id = rv.Id, Category = rv.Category, Locator = "json|" + rv.Key, OldRaw = oldText, NewRaw = newText });
-        }
-        bool indented = edit.Original.Contains((byte)'\n');
-        edit.Updated = System.Text.Encoding.UTF8.GetBytes(root.ToJsonString(new JsonSerializerOptions { WriteIndented = indented }));
-    }
-
-    static void EditKv(GamePlan plan, OptimizeRequest req, FileEdit edit, List<RuleValue> values)
-    {
-        var text = new System.Text.UTF8Encoding(false, true).GetString(edit.Original);
-        KvNode.Parse(text);
-        foreach (var rv in values)
-        {
-            var val = rv.Value is bool b ? (b ? "1" : "0") : rv.Value is double d ? d.ToString("0.######", Inv) : Convert.ToString(rv.Value, Inv)!;
-            var probe = text;
-            if (!KvText.TrySet(ref probe, rv.Key, val, out var old)) { plan.Skipped.Add($"Kept: {rv.Key} (not in {Path.GetFileName(edit.Path)}, or listed twice)"); continue; }
-            if (old == val) continue;
-            if (!Want(plan, req, rv.Id, rv.Category, rv.Key, old, val)) continue;
-            text = probe;
-            edit.Changes.Add(new(rv.Key, old, val) { Id = rv.Id, Category = rv.Category, Locator = "kv|" + rv.Key, OldRaw = old, NewRaw = val });
-        }
-        edit.Updated = new System.Text.UTF8Encoding(false).GetBytes(text);
-    }
+    public static string GvasRaw(object v) => GvasSettingsDocument.ToRaw(v);
 
     public static string Show(object? v) => v switch
     {
@@ -546,28 +431,4 @@ public static partial class Planner
         int[] a => string.Join("x", a),
         _ => Convert.ToString(v, Inv) ?? "",
     };
-}
-
-/// <summary>Line-level edits of flat "key" "value" pairs in Valve text files.</summary>
-public static partial class KvText
-{
-    public static bool TrySet(ref string text, string key, string value, out string? old)
-    {
-        var rx = Rx(key);
-        var ms = rx.Matches(text);
-        old = null;
-        if (ms.Count != 1) return false;
-        old = ms[0].Groups[2].Value;
-        text = rx.Replace(text, m => m.Groups[1].Value + value + m.Groups[3].Value);
-        return true;
-    }
-
-    public static string? Get(string text, string key)
-    {
-        var ms = Rx(key).Matches(text);
-        return ms.Count == 1 ? ms[0].Groups[2].Value : null;
-    }
-
-    static Regex Rx(string key) =>
-        new("^(\\s*\"" + Regex.Escape(key) + "\"\\s+\")([^\"]*)(\")", RegexOptions.Multiline | RegexOptions.IgnoreCase);
 }

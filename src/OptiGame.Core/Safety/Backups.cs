@@ -1,8 +1,6 @@
 using System.Globalization;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using OptiGame.Core.Formats;
 using OptiGame.Core.Optimize;
 using Microsoft.Win32;
@@ -360,108 +358,15 @@ public static class Applier
             keys.Add(new KeyUndo(setting, cur, c.OldRaw, c.NewRaw, s));
             return s;
         }
-        if (FormatHandlers.Find(format) is { } handler)
+        var handler = FormatHandlers.Find(format)
+            ?? throw new NotSupportedException($"key-level undo is not available for {format} files");
+        var document = handler.ReadForUndo(current);
+        foreach (var change in changes)
         {
-            var document = handler.Read(current);
-            foreach (var change in changes)
-            {
-                if (Decide(change.Setting, document.GetRaw(change.Locator), change) != KeyState.Revert) continue;
-                if (change.OldRaw is null || !document.TrySet(change.Locator, change.OldRaw))
-                    throw new FormatException("The recorded setting could not be restored safely.");
-            }
-            return (document.ToBytes(), keys);
+            if (Decide(change.Setting, document.GetRaw(change.Locator), change) == KeyState.Revert)
+                document.RestoreRaw(change.Locator, change.OldRaw);
         }
-
-        switch (format)
-        {
-            case "ini":
-            {
-                var ini = IniDocument.Parse(current);
-                foreach (var c in changes)
-                {
-                    var parts = c.Locator.Split('|');
-                    if (parts is not ["ini", var sec, var key]) throw new FormatException($"bad locator {c.Locator}");
-                    if (Decide(c.Setting, ini.Get(sec, key), c) != KeyState.Revert) continue;
-                    if (c.OldRaw is null) ini.Remove(sec, key);
-                    else if (!ini.Set(sec, key, c.OldRaw, false, out var err)) throw new FormatException(err);
-                }
-                return (ini.ToBytes(), keys);
-            }
-            case "kv":
-            {
-                var text = new UTF8Encoding(false, true).GetString(current);
-                foreach (var c in changes)
-                {
-                    var key = c.Locator["kv|".Length..];
-                    if (Decide(c.Setting, KvText.Get(text, key), c) != KeyState.Revert) continue;
-                    if (!KvText.TrySet(ref text, key, c.OldRaw ?? "", out _)) throw new FormatException($"{key} could not be set");
-                }
-                return (new UTF8Encoding(false).GetBytes(text), keys);
-            }
-            case "json":
-            {
-                var root = JsonNode.Parse(current, documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true })
-                           ?? throw new FormatException("empty JSON");
-                foreach (var c in changes)
-                {
-                    var parts = c.Locator["json|".Length..].Split('.');
-                    JsonNode? parent = root;
-                    foreach (var p in parts[..^1]) parent = parent?[p];
-                    var obj = parent as JsonObject;
-                    var cur = obj is not null && obj.TryGetPropertyValue(parts[^1], out var node) ? node?.ToJsonString() : null;
-                    if (Decide(c.Setting, cur, c) != KeyState.Revert) continue;
-                    obj![parts[^1]] = c.OldRaw is null ? null : JsonNode.Parse(c.OldRaw);
-                }
-                return (Encoding.UTF8.GetBytes(root.ToJsonString(new JsonSerializerOptions { WriteIndented = current.Contains((byte)'\n') })), keys);
-            }
-            case "red":
-            {
-                // REDengine UserSettings.json: put back the recorded options in place (value, and a list's index), nothing else.
-                var red = RedSettingsFile.Parse(current);
-                foreach (var c in changes)
-                {
-                    var parts = c.Locator.Split('|');
-                    if (parts is not ["red", var group, var name]) throw new FormatException($"bad locator {c.Locator}");
-                    if (Decide(c.Setting, red.GetRaw(group, name), c) != KeyState.Revert) continue;
-                    string err = "";
-                    if (c.OldRaw is null || !red.TrySet(group, name, c.OldRaw, out err)) throw new FormatException(err.Length > 0 ? err : $"{name} could not be restored");
-                }
-                return (red.ToBytes(), keys);
-            }
-            case "gvas":
-            {
-                var sav = GvasFile.Load(current);
-                foreach (var c in changes)
-                {
-                    var p = sav.Find(c.Locator["gvas|".Length..]);
-                    var curVal = p?.Get();
-                    var cur = curVal is null ? null : Planner.GvasRaw(curVal);
-                    if (Decide(c.Setting, cur, c) != KeyState.Revert) continue;
-                    if (!p!.TrySet(FromRaw(c.OldRaw!, curVal!), out var err)) throw new FormatException(err);
-                }
-                var bytes = sav.Save();
-                GvasFile.Load(bytes);
-                return (bytes, keys);
-            }
-            default: throw new NotSupportedException($"key-level undo is not available for {format} files");
-        }
-    }
-
-    /// <summary>Typed value from its JSON text, shaped like the property's current value.</summary>
-    static object FromRaw(string raw, object like)
-    {
-        using var d = JsonDocument.Parse(raw);
-        var e = d.RootElement;
-        return like switch
-        {
-            int => e.GetInt32(),
-            long => e.GetInt64(),
-            double => e.GetDouble(),
-            bool => e.GetBoolean(),
-            string => e.GetString()!,
-            int[] => e.EnumerateArray().Select(x => x.GetInt32()).ToArray(),
-            _ => throw new NotSupportedException($"cannot restore a {like.GetType().Name} value"),
-        };
+        return (document.ToBytes(), keys);
     }
 
     /// <summary>
