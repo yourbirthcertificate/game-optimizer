@@ -71,13 +71,15 @@ public sealed class OptimizerSession
         return OptimizeRequest.ResolutionFor(Prefs, g.Id, d) ?? (d.CurrentWidth, d.CurrentHeight);
     }
 
-    public OptimizeRequest RequestFor(GameInfo g, IEnumerable<string>? temporaryExcluded = null, QualityStep? forcedStep = null) =>
-        OptimizeRequest.Resolve(Prefs, g, Hw, Recommended(g), temporaryExcluded, forcedStep);
+    public OptimizeRequest RequestFor(GameInfo g, IEnumerable<string>? temporaryExcluded = null, QualityStep? forcedStep = null,
+        double? recommendationTargetFps = null) =>
+        OptimizeRequest.Resolve(Prefs, g, Hw, Recommended(g), temporaryExcluded, forcedStep, recommendationTargetFps);
 
-    public GamePlan PlanFor(GameInfo g, IEnumerable<string>? temporaryExcluded = null, QualityStep? forcedStep = null, IReadOnlyList<string>? runningImages = null)
+    public GamePlan PlanFor(GameInfo g, IEnumerable<string>? temporaryExcluded = null, QualityStep? forcedStep = null,
+        IReadOnlyList<string>? runningImages = null, double? recommendationTargetFps = null)
     {
         GamePlan plan;
-        var req = RequestFor(g, temporaryExcluded, forcedStep);
+        var req = RequestFor(g, temporaryExcluded, forcedStep, recommendationTargetFps);
         try { plan = Planner.Plan(g, Hw, req, Rules); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {

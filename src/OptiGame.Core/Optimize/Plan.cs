@@ -59,6 +59,7 @@ public sealed class GamePlan
     public required GameInfo Game { get; init; }
     public required QualityStep Step { get; init; }
     public OptimizeRequest? Request { get; init; }
+    public OptiGame.Core.Recommend.SettingRecommendationReport? SettingAdvice { get; internal set; }
     public List<FileEdit> Files { get; } = new();
     public List<RegistryEdit> Registry { get; } = new();
     /// <summary>Changes left out by "keep my settings", a profile, or a one-off untick in the preview.</summary>

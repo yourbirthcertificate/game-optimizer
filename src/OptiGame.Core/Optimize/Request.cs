@@ -17,6 +17,8 @@ public sealed class OptimizeRequest
     public FpsMode FpsMode { get; init; } = FpsMode.Auto;
     /// <summary>The cap in fps for Auto and Custom; null for Keep and Uncapped.</summary>
     public double? FpsCap { get; init; }
+    /// <summary>An optional advisory FPS target. Independent of the cap used when applying settings.</summary>
+    public double? RecommendationTargetFps { get; init; }
     /// <summary>Target resolution; null = keep the game's.</summary>
     public (int w, int h)? Resolution { get; init; }
     public DisplayModeChoice DisplayMode { get; init; } = DisplayModeChoice.Recommended;
@@ -72,7 +74,7 @@ public sealed class OptimizeRequest
     }
 
     public static OptimizeRequest Resolve(Prefs prefs, GameInfo game, HardwareInfo hw, QualityStep recommended,
-        IEnumerable<string>? temporaryExcluded = null, QualityStep? forcedStep = null)
+        IEnumerable<string>? temporaryExcluded = null, QualityStep? forcedStep = null, double? recommendationTargetFps = null)
     {
         var notes = new List<string>();
         var display = DisplayFor(prefs, game.Id, hw, notes);
@@ -90,7 +92,7 @@ public sealed class OptimizeRequest
         return new OptimizeRequest
         {
             Step = step, StepSource = source, ProfileName = prefs.ProfileFor(game.Id).Name, Display = display,
-            FpsMode = mode, FpsCap = cap,
+            FpsMode = mode, FpsCap = cap, RecommendationTargetFps = recommendationTargetFps,
             Resolution = ResolutionFor(prefs, game.Id, display, notes),
             DisplayMode = prefs.PickValue(game.Id, s => s.DisplayMode),
             VSync = prefs.PickValue(game.Id, s => s.VSync),
