@@ -335,6 +335,8 @@ public static partial class Cli
                     foreach (var p in problems) Console.WriteLine("   " + p);
                 }
                 return bad > 0 ? 1 : 0;
+            case "guides":
+                return ListGuides(rest);
             case "snapshot":
                 var target = Opt(rest, "--target").FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli rule snapshot --target PATH [--format F] [--out FILE]");
                 var fmt = Opt(rest, "--format").FirstOrDefault() ?? Snapshot.GuessFormat(target) ?? throw new ArgumentException("Cannot tell the format; add --format " + string.Join("|", Snapshot.Formats));
@@ -357,7 +359,7 @@ public static partial class Cli
                     : DraftRule(rest, name => One(OptimizerSession.LoadForInspection(), name));
             case "wizard":
                 return await Wizard(rest);
-            default: throw new ArgumentException("Use: optigame-cli rule list|validate|snapshot|diff|draft|wizard");
+            default: throw new ArgumentException("Use: optigame-cli rule list|validate|guides|snapshot|diff|draft|wizard");
         }
     }
 

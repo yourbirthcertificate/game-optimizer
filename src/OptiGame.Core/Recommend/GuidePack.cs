@@ -9,11 +9,19 @@ namespace OptiGame.Core.Recommend;
 public sealed record GuideSource(string Id, string Name, string Url, DateOnly Retrieved, string AppliesTo,
     string Summary, string Confidence, DateOnly? Verified = null)
 {
-    internal RecommendationEvidence ToEvidence() => new(Name, FormattableString.Invariant(
-        $"{Summary} Source scope: {AppliesTo}. Citation reviewed {Verified:yyyy-MM-dd} (source confidence: {Confidence})."), Url);
+    public RecommendationEvidence ToEvidence()
+    {
+        var review = Verified is { } date
+            ? FormattableString.Invariant($"Citation reviewed {date:yyyy-MM-dd} (source confidence: {Confidence}).")
+            : "Citation awaiting review.";
+        return new(Name, $"{Summary} Source scope: {AppliesTo}. {review}", Url);
+    }
 }
 
 public sealed record GuideAdvice(string Game, string Option, string Source, string? Value = null, string? Direction = null);
+
+public sealed record GuideObservation(GuideAdvice Advice, GuideSource Source);
+public sealed record GuideOptionReport(string Option, IReadOnlyList<GuideObservation> Observations, bool HasDisagreement);
 
 /// <summary>Read-only published evidence. Guide entries are never loaded as optimizer rules.</summary>
 public sealed partial record GuidePack(int SchemaVersion, IReadOnlyList<GuideSource> Sources, IReadOnlyList<GuideAdvice> Advice)
@@ -41,6 +49,23 @@ public sealed partial record GuidePack(int SchemaVersion, IReadOnlyList<GuideSou
     internal string? FindReviewedValue(string game, string option, string source) => FindReviewedSource(source) is null
         ? null
         : Advice.FirstOrDefault(entry => entry.Game == game && entry.Option == option && entry.Source == source)?.Value;
+
+    /// <summary>Shows observations and disagreements without assuming the active game build.</summary>
+    public IReadOnlyList<GuideOptionReport> ForGame(string game, string? option = null, string? sourceScope = null)
+    {
+        var sources = Sources.ToDictionary(source => source.Id, StringComparer.Ordinal);
+        return Advice.Where(entry => entry.Game.Equals(game, StringComparison.OrdinalIgnoreCase) &&
+                (option is null || entry.Option.Equals(option, StringComparison.OrdinalIgnoreCase)))
+            .Select(entry => new GuideObservation(entry, sources[entry.Source]))
+            .Where(observation => sourceScope is null || observation.Source.AppliesTo.Equals(sourceScope, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(observation => observation.Advice.Option, StringComparer.Ordinal)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new GuideOptionReport(group.Key, group.ToArray(), group
+                .Where(observation => observation.Source.Verified.HasValue)
+                .Select(observation => (observation.Advice.Value, observation.Advice.Direction))
+                .Distinct().Skip(1).Any()))
+            .ToArray();
+    }
 
     public static GuidePack? ReadBuiltIn(out List<RuleProblem> problems)
     {
