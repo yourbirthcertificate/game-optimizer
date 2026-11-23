@@ -1,5 +1,7 @@
 using System.Globalization;
 using OptiGame.Core.Formats;
+using OptiGame.Core.Hardware;
+using OptiGame.Core.Recommend;
 using OptiGame.Core.Library;
 using OptiGame.Core.Library.ConfigDiscovery;
 
@@ -34,7 +36,7 @@ public static partial class Planner
             ? (xml, widthKey, heightKey, width!, height!) : null;
     }
 
-    static void EldenRing(GamePlan plan, OptimizeRequest req)
+    static void EldenRing(GamePlan plan, HardwareInfo hardware, OptimizeRequest req)
     {
         const string settingId = "elden-ring:resolution";
         var folder = Path.Combine(RoamingAppData, "EldenRing");
@@ -73,6 +75,8 @@ public static partial class Planner
         }
 
         plan.SettingsFolder = folder;
+        var currentResolution = (int.Parse(display.Width, Inv), int.Parse(display.Height, Inv));
+        plan.SettingAdvice = EldenRingSettingRecommender.Recommend(hardware, req, display.Document, currentResolution);
         plan.NotControlled.Add("Elden Ring XML support covers the current fullscreen or borderless resolution.");
         if (req.Resolution is not { } requested)
         {

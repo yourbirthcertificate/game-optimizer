@@ -236,7 +236,7 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
         foreach (var g in games)
         {
             bool showDetails = details || filters.Count > 0 || targetFps is not null;
-            bool showAdvice = showDetails && (g.Engine == GameEngine.RedEngine || targetFps is not null);
+            bool showAdvice = showDetails && (Planner.SupportsSettingAdvice(g) || targetFps is not null);
             if (s.Recs.TryGetValue(g.Id, out var r))
             {
                 Console.WriteLine($"{Trim(g.Name, 36),-36} {r.Step.Label(),-10} [{r.Chip}] {r.Reason}");
