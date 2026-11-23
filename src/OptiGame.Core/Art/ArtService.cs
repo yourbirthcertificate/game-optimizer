@@ -31,7 +31,7 @@ public static class ArtService
     public static string UserPath(GameInfo g) => UserPath(g, ArtSlot.Cover);
     public static string UserPath(GameInfo g, ArtSlot slot) =>
         Path.Combine(Dir, Safe(g.Id) + (slot == ArtSlot.SmallIcon ? ".icon.user.img" : ".user.img"));
-    static string MissPath(GameInfo g) => Path.Combine(Dir, Safe(g.Id) + ".none");
+    static string MissPath(GameInfo g) => Path.Combine(Dir, Safe(g.Id) + ".none2");   // v2: the Epic lookup learned DieselGameBox, so older misses are not trusted
 
     /// <summary>The art already on disk for this game without any network: your image, the cache, or Steam's own cache.</summary>
     public static ArtResult? Local(GameInfo g, string? steamRoot = null)
@@ -204,7 +204,8 @@ public static class ArtService
             var hit = items?.FirstOrDefault(i => string.Equals(i?["title"]?.GetValue<string>()?.Trim(), title.Trim(), StringComparison.OrdinalIgnoreCase));
             var images = hit?["keyImages"]?.AsArray();
             string? Pick(string type) => images?.FirstOrDefault(i => i?["type"]?.GetValue<string>() == type)?["url"]?.GetValue<string>();
-            return Pick("OfferImageWide") ?? Pick("DieselGameBoxWide") ?? Pick("Thumbnail");
+            // Epic names its wide key art OfferImageWide (store offers) or DieselGameBox (launcher games such as Fortnite); the Tall variants are portrait.
+            return Pick("OfferImageWide") ?? Pick("DieselGameBox") ?? Pick("DieselGameBoxWide") ?? Pick("Thumbnail");
         }
         catch (Exception e) when (e is IOException or FormatException or JsonException or InvalidOperationException or UnauthorizedAccessException) { return null; }
     }
