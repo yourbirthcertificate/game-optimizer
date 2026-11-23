@@ -34,6 +34,7 @@ public static partial class Planner
             if (IsEldenRing(g)) EldenRing(plan, hw, req);
             else if (IsHelldivers(g)) Helldivers(plan, req);
             else if (IsZomboid(g)) Zomboid(plan, req);
+            else if (IsCounterStrike2(g)) CounterStrike2(plan, req);
             else switch (g.Engine)
             {
                 case GameEngine.Unreal: Unreal(plan, hw, req, rule); break;

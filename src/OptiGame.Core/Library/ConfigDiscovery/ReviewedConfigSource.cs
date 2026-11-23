@@ -74,7 +74,7 @@ internal sealed class ReviewedConfigSource(IReadOnlyList<ReviewedLocation>? pack
         if (account >= 0)
         {
             if (entry.Store != "Steam" || Array.LastIndexOf(parts, StoreUser) != account ||
-                ReadOnlySteamAccount() is not { } steamId)
+                SteamConfigAccount.SingleSteamId(steamRoot) is not { } steamId)
             {
                 search.Note(Source, "store-user-unresolved", "The path needs an unambiguous Steam account ID on this PC.");
                 return null;
@@ -82,25 +82,6 @@ internal sealed class ReviewedConfigSource(IReadOnlyList<ReviewedLocation>? pack
             parts[account] = steamId;
         }
         return Path.Combine(root, Path.Combine(parts));
-    }
-
-    string? ReadOnlySteamAccount()
-    {
-        try
-        {
-            if (steamRoot() is not { } root ||
-                ConfigPaths.CanonicalLocal(Path.Combine(root, "config", "loginusers.vdf")) is not { } path ||
-                ConfigPaths.Inspect(path) != PathState.File)
-                return null;
-
-            var users = KnownConfigSource.KeyValues(ConfigPaths.ReadBounded(path))["users"];
-            return users?.Children is [var user] && user.Value is null && user.Key.Length == 17 && ConfigPaths.IsId(user.Key)
-                ? user.Key : null;
-        }
-        catch (Exception ex) when (ConfigPaths.IsReadError(ex) || ex is FormatException or System.Text.DecoderFallbackException)
-        {
-            return null;
-        }
     }
 
     static IReadOnlyList<ReviewedLocation> Load()
