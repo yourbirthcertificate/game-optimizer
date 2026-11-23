@@ -16,8 +16,8 @@ OptiGame+ command line (optigame-cli.exe; gameopt.exe is the same program)
 Look around
   optigame-cli hw                          Hardware, displays (active and supported modes), PC-wide step
   optigame-cli scan [--offline]            Every game: engine, sources, step, status
-  optigame-cli recommend [--game NAME] [--details] [--offline]
-                                      Each game's recommended step, its basis and caveats
+  optigame-cli recommend [--game NAME] [--details] [--target-fps N] [--offline]
+                                      Quality step and per-setting advice where available
   optigame-cli why --game NAME             Why a game is skipped and what you can do
   optigame-cli why --all-skipped           One line for every skipped game, with its likely settings folder
   optigame-cli config find --game NAME [--offline]
@@ -29,6 +29,7 @@ Optimize
   optigame-cli apply [options]             Back up, then write the changes
     --game NAME      Only games whose name contains NAME (repeatable). Default: all games.
     --step STEP      Use this quality step instead of the slider choices (low..ultra or 0-5).
+    --target-fps N   Override the advisory target in preview only. The frame cap stays separate.
     --exclude ID     Leave this setting id out of this run only (repeatable; ids are shown in preview).
     --offline        Use cached requirement data only.
 
@@ -226,6 +227,7 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
     {
         var filters = Opt(argv, "--game");
         bool details = Flag(argv, "--details");
+        var targetFps = ReadRecommendationTarget(argv);
         NoMore(argv);
         var s = Load();
         var games = filters.Count == 0 ? s.Scan.Games : filters.SelectMany(f => s.Matching(f)).Distinct().ToList();
@@ -233,13 +235,29 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
         await Recs(s, games);
         foreach (var g in games)
         {
-            if (!s.Recs.TryGetValue(g.Id, out var r)) continue;
-            Console.WriteLine($"{Trim(g.Name, 36),-36} {r.Step.Label(),-10} [{r.Chip}] {r.Reason}");
-            if (details || filters.Count > 0)
+            bool showDetails = details || filters.Count > 0 || targetFps is not null;
+            bool showAdvice = showDetails && (g.Engine == GameEngine.RedEngine || targetFps is not null);
+            if (s.Recs.TryGetValue(g.Id, out var r))
             {
-                Console.WriteLine($"   Steam app id: {s.AppIdFor(g) ?? "none"} ({s.AppIdSource(g)})");
-                foreach (var line in r.Details.Split('\n').Skip(1)) Console.WriteLine("   " + line);
-                if (filters.Count > 0) foreach (var l in GameLinks.For(g)) Console.WriteLine($"   {l.Label}: {l.Url}");
+                Console.WriteLine($"{Trim(g.Name, 36),-36} {r.Step.Label(),-10} [{r.Chip}] {r.Reason}");
+                if (showDetails)
+                {
+                    Console.WriteLine($"   Steam app id: {s.AppIdFor(g) ?? "none"} ({s.AppIdSource(g)})");
+                    foreach (var line in r.Details.Split('\n').Skip(1)) Console.WriteLine("   " + line);
+                    if (filters.Count > 0) foreach (var l in GameLinks.For(g)) Console.WriteLine($"   {l.Label}: {l.Url}");
+                }
+            }
+            else if (showAdvice)
+                Console.WriteLine($"{g.Name}: {s.Recommended(g).Label()} [PC-wide]");
+
+            if (showAdvice)
+            {
+                var plan = s.PlanFor(g, recommendationTargetFps: targetFps);
+                if (plan.SettingAdvice is null)
+                    Console.WriteLine("   Per-setting advice unavailable. " + (plan.Status == PlanStatus.Skipped
+                        ? plan.SkipText : "No supported per-setting model for this plan."));
+                else
+                    foreach (var line in SettingAdviceLines(plan.SettingAdvice)) Console.WriteLine("   " + line);
             }
         }
         return 0;
@@ -294,6 +312,7 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
     {
         var filters = Opt(argv, "--game");
         var excl = Opt(argv, "--exclude");
+        var targetFps = write ? null : ReadRecommendationTarget(argv);
         QualityStep? forced = null;
         foreach (var st in Opt(argv, "--step"))
             forced = QualitySteps.TryParse(st, out var q) ? q : throw new ArgumentException($"Unknown step '{st}'.");
@@ -303,7 +322,7 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
         if (games.Count == 0) throw new ArgumentException($"No installed game matches {string.Join(", ", filters)}.");
         await Recs(s, games);
         var images = ProcessGuard.RunningImages();
-        var plans = games.Select(g => s.PlanFor(g, excl, forced, images)).ToList();
+        var plans = games.Select(g => s.PlanFor(g, excl, forced, images, targetFps)).ToList();
         foreach (var p in plans)
         {
             if (filters.Count == 0 && p.Status is PlanStatus.Skipped or PlanStatus.NothingToChange) continue;
@@ -344,6 +363,7 @@ sent) and cache them for a week. Measured benchmarks are shown beside them and n
             Console.WriteLine($"   recommended {rec.Step.Label()} [{rec.Chip}]: {rec.Reason}");
             if (rec.Measured is not null) Console.WriteLine($"   measured (preferred benchmark): {rec.Measured}");
         }
+        foreach (var line in SettingAdviceLines(p.SettingAdvice)) Console.WriteLine("   " + line);
         foreach (var f in p.Files)
         {
             Console.WriteLine($"   {f.Path}");

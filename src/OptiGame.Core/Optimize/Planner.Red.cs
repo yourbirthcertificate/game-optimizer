@@ -2,6 +2,7 @@ using System.Globalization;
 using OptiGame.Core.Formats;
 using OptiGame.Core.Hardware;
 using OptiGame.Core.Library;
+using OptiGame.Core.Recommend;
 
 namespace OptiGame.Core.Optimize;
 
@@ -46,7 +47,7 @@ public static partial class Planner
         ("/gameplay/performance", "CrowdDensity", Categories.Quality, 0),                 // the game keeps a copy here too
     };
 
-    static string RedId(string group, string name) => "red:" + group.Trim('/').Replace('/', '.') + "." + name;
+    internal static string RedId(string group, string name) => "red:" + group.Trim('/').Replace('/', '.') + "." + name;
 
     static string Unquote(string raw) => raw.Length >= 2 && raw[0] == '"' ? raw[1..^1] : raw;
 
@@ -67,6 +68,7 @@ public static partial class Planner
         catch (FormatException e) { plan.Skip(SkipKind.UnsupportedFormat, "UserSettings.json could not be read: " + e.Message, plan.SettingsFolder); return; }
         if (file.Options.Count == 0) { plan.Skip(SkipKind.UnsupportedFormat, "UserSettings.json has no options this tool recognises", plan.SettingsFolder); return; }
 
+        plan.SettingAdvice = CyberpunkSettingRecommender.Recommend(hw, req, file);
         plan.Examined = true;
         var edit = new FileEdit { Path = path, Original = original, Updated = original, Format = "red" };
 
