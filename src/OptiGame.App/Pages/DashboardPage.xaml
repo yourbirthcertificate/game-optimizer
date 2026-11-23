@@ -6,6 +6,19 @@
             <TextBlock Text="Dashboard" Style="{StaticResource PageTitle}" />
             <TextBlock Text="Live view of your laptop while you play. Boost clears resources for the game; nothing is closed without your click." Style="{StaticResource Secondary}" />
 
+            <!-- an update is available -->
+            <Border Style="{StaticResource Card}" Margin="0,18,0,0" Padding="16,12" Visibility="{Binding UpdateBannerVisible, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="36" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xE895;" Style="{StaticResource TipGlyph}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                    <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                        <TextBlock Text="{Binding UpdateVersionText, StringFormat=OptiGame+ {0} is available}" FontWeight="SemiBold" />
+                        <TextBlock Text="See what changed, then download it and restart when it suits you." Style="{StaticResource Secondary}" FontSize="13" Margin="0,3,0,0" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Content="{Binding InstallUpdateText}" Click="ShowUpdate_Click" Style="{DynamicResource AccentButtonStyle}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
             <!-- hero: the boost -->
             <Border Style="{StaticResource Card}" Padding="24" Margin="0,18,0,0">
                 <Grid>

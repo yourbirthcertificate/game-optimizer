@@ -59,7 +59,7 @@ public partial class SettingsPage : UserControl
 
     // updates
     async void CheckUpdate_Click(object sender, RoutedEventArgs e) => await _vm.CheckForUpdateAsync(manual: true);
-    async void InstallUpdate_Click(object sender, RoutedEventArgs e) => await _vm.InstallUpdateAsync(_exit);
+    void InstallUpdate_Click(object sender, RoutedEventArgs e) => _vm.ShowUpdateWindow();
 
     // tools
     void History_Click(object sender, RoutedEventArgs e) => _games.History_Click(sender, e);
