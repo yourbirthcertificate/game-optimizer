@@ -20,6 +20,11 @@ edits Apply writes; nothing in it is changed for you.
 - Counter-Strike 2 VSync can be changed, with preview, backup and byte-exact undo, for one verified local Steam account.
 - Rules can be drafted from before and after snapshots, for one game or a report across skipped games. A draft records the
   step it was observed at, empty slots keep the setting, and a saved draft stays inactive until you review and enable it.
+- On a skipped game, "Draft a rule from snapshots" previews a draft from a before and an after snapshot: the step it
+  was observed at, and each setting's value per step with "keep" for the empty slots. Saving writes an inactive draft.
+- Game art: the list shows each game's own icon, and the detail header shows the whole key art at its own shape instead
+  of a cropped strip. Newer Steam games (no `header.jpg` on Steam's server) and Epic launcher games such as Fortnite now
+  get their art.
 - The setup program shows what to expect before installing and getting-started tips afterwards.
 - Fixed: a test stand-in named after a game (for example `Cyberpunk2077.exe` in the temp folder) was detected as a game
   and boosted. Anything running from the temp folder is now ignored.
