@@ -483,3 +483,4 @@ $RECYCLE.BIN/
 
 # Publish output
 dist/
+installer/whatsnew.txt
