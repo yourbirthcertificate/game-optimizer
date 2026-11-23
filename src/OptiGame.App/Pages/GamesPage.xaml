@@ -192,7 +192,7 @@
                         <!-- hero: art, name, links and live actions -->
                         <Border Style="{StaticResource Card}" Padding="0" ClipToBounds="True">
                             <StackPanel>
-                                <Border Height="130" Background="{Binding Tile}">
+                                <Border MinHeight="110" MaxHeight="260" Background="{Binding Tile}">
                                     <Grid>
                                         <TextBlock Text="{Binding Initials}" Foreground="#38FFFFFF" FontSize="64" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,24,0"
                                                    Visibility="{Binding ShowInitials, Converter={StaticResource BoolToVis}}" />
@@ -200,7 +200,7 @@
                                                Visibility="{Binding HasArt, Converter={StaticResource BoolToVis}}">
                                             <Image.Style>
                                                 <Style TargetType="Image">
-                                                    <Setter Property="Stretch" Value="UniformToFill" />
+                                                    <Setter Property="Stretch" Value="Uniform" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsIcon}" Value="True">
                                                             <Setter Property="Stretch" Value="Uniform" />
