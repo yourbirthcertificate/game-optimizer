@@ -50,6 +50,16 @@
       "confidence": "low",
       "appliesTo": "Elden Ring PC XML shared by a player in July 2022, exact patch unreported",
       "summary": "The player shared GraphicsConfig.xml with MotionBlur and DepthOfField both set to DISABLE."
+    },
+    {
+      "id": "digital-trends-helldivers",
+      "name": "Digital Trends",
+      "url": "https://www.digitaltrends.com/computing/helldivers-2-pc-performance-best-settings/",
+      "retrieved": "2026-11-23",
+      "verified": "2026-11-23",
+      "confidence": "medium",
+      "appliesTo": "Helldivers 2 PC launch period in February 2024, exact patch unreported",
+      "summary": "Launch-period tests describe the menu options and settings selected by the reviewer for their test hardware."
     }
   ],
   "advice": [
@@ -72,6 +82,11 @@
     { "game": "elden-ring", "option": "MotionBlur", "value": "Off", "source": "digital-trends" },
     { "game": "elden-ring", "option": "MotionBlur", "value": "DISABLE", "source": "elden-xml" },
     { "game": "elden-ring", "option": "DepthOfField", "value": "Off", "source": "digital-trends" },
-    { "game": "elden-ring", "option": "DepthOfField", "value": "DISABLE", "source": "elden-xml" }
+    { "game": "elden-ring", "option": "DepthOfField", "value": "DISABLE", "source": "elden-xml" },
+    { "game": "helldivers-2", "option": "menu.texture-quality", "value": "High", "source": "digital-trends-helldivers" },
+    { "game": "helldivers-2", "option": "menu.object-detail-quality", "value": "Medium", "source": "digital-trends-helldivers" },
+    { "game": "helldivers-2", "option": "menu.render-distance", "value": "High", "source": "digital-trends-helldivers" },
+    { "game": "helldivers-2", "option": "menu.shadow-quality", "value": "Medium", "source": "digital-trends-helldivers" },
+    { "game": "helldivers-2", "option": "menu.terrain-quality", "value": "Medium", "source": "digital-trends-helldivers" }
   ]
 }

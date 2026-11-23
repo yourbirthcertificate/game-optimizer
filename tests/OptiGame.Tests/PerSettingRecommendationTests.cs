@@ -10,11 +10,12 @@ public sealed class PerSettingRecommendationTests
 {
     static byte[] Fixture() => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "fixtures", "cyberpunk-UserSettings.json"));
     static HardwareInfo Hardware() => new() { Gpu = "GeForce RTX 2060 Super", GpuVramGb = 8, RamGb = 16 };
-    static OptimizeRequest Request(double? fps, bool keep = false) => new()
+    static OptimizeRequest Request(double? fps, bool keep = false, RecommendationPriority priority = RecommendationPriority.Balanced) => new()
     {
         Display = new DisplayInfo { DeviceName = "fixture", CurrentHz = 59.94 },
         Resolution = (1920, 1080),
         RecommendationTargetFps = fps,
+        RecommendationPriority = priority,
         Preserve = keep ? [Categories.Quality] : [],
     };
 
@@ -40,6 +41,30 @@ public sealed class PerSettingRecommendationTests
         Assert.Contains(faster.Evidence, item => item.Source == "CD PROJEKT RED" && item.Url is not null);
         Assert.Contains(faster.Evidence, item => item.Source == "PC Gamer" && item.Url is not null);
         Assert.Equal(original, document.ToBytes());
+    }
+
+    [Fact]
+    public void Explicit_priorities_respect_the_available_evidence()
+    {
+        var document = RedSettingsFile.Parse(Fixture());
+        var look = CyberpunkSettingRecommender.Recommend(Hardware(), Request(60, priority: RecommendationPriority.Look), document);
+        var anisotropy = Assert.Single(look.Settings, option => option.Name == "Anisotropy");
+        Assert.Equal("16", anisotropy.CurrentValue);
+        Assert.Equal(anisotropy.CurrentValue, anisotropy.SuggestedValue);
+        var highTarget = CyberpunkSettingRecommender.Recommend(Hardware(), Request(90, priority: RecommendationPriority.Look), document);
+        Assert.Empty(highTarget.Settings);
+        Assert.Contains("Look priority", highTarget.FallbackReason);
+
+        var speed = CyberpunkSettingRecommender.Recommend(Hardware(), Request(60, priority: RecommendationPriority.Speed), document);
+        Assert.Equal(5, speed.Settings.Count);
+        Assert.All(speed.Settings, option => Assert.Equal("Medium", option.SuggestedValue));
+        Assert.Contains(OptiGame.Cli.Cli.SettingAdviceLines(speed), line => line == "Advisory priority: speed.");
+
+        var quiet = CyberpunkSettingRecommender.Recommend(Hardware(), Request(60, priority: RecommendationPriority.Quiet), document);
+        Assert.Empty(quiet.Settings);
+        Assert.Contains("noise or power data", quiet.FallbackReason);
+        Assert.Equal(RecommendationPriority.Look, OptiGame.Cli.Cli.ReadRecommendationPriority(["--priority", "LOOK"]));
+        Assert.Throws<ArgumentException>(() => OptiGame.Cli.Cli.ReadRecommendationPriority(["--priority", "1"]));
     }
 
     [Fact]

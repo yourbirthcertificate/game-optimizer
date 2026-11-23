@@ -190,6 +190,7 @@ public sealed class LiveTests : IDisposable
         Assert.Equal(2, GameDetector.Why("Foo-Win64-Shipping", @"C:\Odd\Foo-Win64-Shipping.exe", none, lib, usr).score);
         Assert.Equal(1, GameDetector.Why("coolgame", @"D:\Lib\Cool Game\bin\coolgame.exe", none, lib, usr).score);
         Assert.Null(GameDetector.Why("crashreporter", @"D:\Lib\Cool Game\crashreporter.exe", none, lib, usr).why);
+        Assert.Null(GameDetector.Why("cyberpunk2077", Path.Combine(Path.GetTempPath(), "x", "cyberpunk2077.exe"), none, lib, usr).why);
         Assert.Null(GameDetector.Why("notepad", @"C:\Windows\notepad.exe", none, lib, usr).why);
     }
 

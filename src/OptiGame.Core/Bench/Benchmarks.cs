@@ -103,6 +103,7 @@ public sealed class BenchResult
     public string? FpsCap { get; set; }
     public string Hardware { get; set; } = "";
     public string? Notes { get; set; }
+    public BenchmarkCaptureContext? CaptureContext { get; set; }
     public string SourceFormat { get; set; } = "";
     public string SourceFile { get; set; } = "";
     public bool Preferred { get; set; }
@@ -123,15 +124,18 @@ public static class BenchmarkStore
     public static string Dir => Path.Combine(AppPaths.DataDir, "benchmarks");
 
     public static BenchResult Import(string csvPath, string gameId, string gameName, string label, string hardware,
-        string? profile = null, string? step = null, string? resolution = null, string? fpsCap = null, string? notes = null)
+        string? profile = null, string? step = null, string? resolution = null, string? fpsCap = null, string? notes = null,
+        BenchmarkCaptureContext? captureContext = null)
     {
+        if (captureContext is not null && !captureContext.IsComplete())
+            throw new ArgumentException("The benchmark capture context is incomplete.", nameof(captureContext));
         var (frames, fmt) = FrameTimeCsv.Parse(File.ReadAllText(csvPath));
         var r = new BenchResult
         {
             Id = DateTime.Now.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture),
             GameId = gameId, GameName = gameName, Imported = DateTime.Now, Captured = File.GetLastWriteTime(csvPath),
             Label = label, ProfileName = profile, Step = step, Resolution = resolution, FpsCap = fpsCap, Hardware = hardware, Notes = notes,
-            SourceFormat = fmt, SourceFile = Path.GetFileName(csvPath),
+            SourceFormat = fmt, SourceFile = Path.GetFileName(csvPath), CaptureContext = captureContext,
             Metrics = BenchMetrics.From(frames),
             FrameTimesMs = Downsample(frames, 20000),
         };

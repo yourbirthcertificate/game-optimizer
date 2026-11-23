@@ -52,6 +52,24 @@ public sealed class GuidePackTests
     }
 
     [Fact]
+    public void Catalog_keeps_conflicting_build_observations_and_can_filter_by_exact_scope()
+    {
+        var pack = Assert.IsType<GuidePack>(GuidePack.ReadBuiltIn(out _));
+        var reflections = Assert.Single(pack.ForGame("Cyberpunk-2077", "ScreenSpaceReflectionsQuality"));
+        Assert.True(reflections.HasDisagreement);
+        Assert.Contains(reflections.Observations, item => item.Advice.Value == "High" && item.Source.Name == "PC Gamer");
+        var launch = Assert.Single(reflections.Observations, item => item.Advice.Value == "Medium");
+        var filtered = Assert.Single(pack.ForGame("cyberpunk-2077", reflections.Option, launch.Source.AppliesTo));
+        Assert.False(filtered.HasDisagreement);
+        Assert.Equal(launch, Assert.Single(filtered.Observations));
+
+        var helldivers = Assert.Single(pack.ForGame("helldivers-2", "menu.texture-quality"));
+        var observation = Assert.Single(helldivers.Observations);
+        Assert.Equal("High", observation.Advice.Value);
+        Assert.Contains("2024", observation.Source.AppliesTo);
+    }
+
+    [Fact]
     public void Unreviewed_advice_is_valid_but_excluded_from_reviewed_lookups()
     {
         var json = Sample.Replace("\"2026-11-23\"", "null", StringComparison.Ordinal)
