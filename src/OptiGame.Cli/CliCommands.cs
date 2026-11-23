@@ -322,6 +322,7 @@ public static partial class Cli
                 foreach (var e in errors) Console.WriteLine("Problem: " + e);
                 return errors.Count > 0 ? 1 : 0;
             case "validate":
+                if (Flag(rest, "--guide")) return ValidateGuidePacks(rest);
                 var files = rest.Count > 0 ? rest : Directory.Exists(RuleSet.UserRulesDir) ? Directory.EnumerateFiles(RuleSet.UserRulesDir, "*.json").ToList() : new();
                 if (files.Count == 0) { Console.WriteLine("No rule files given and none in " + RuleSet.UserRulesDir); return 0; }
                 int bad = 0;

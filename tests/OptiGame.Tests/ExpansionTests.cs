@@ -414,7 +414,11 @@ public class RuleValidationTests
     public void Shipped_rules_and_examples_validate()
     {
         var dir = Path.Combine(AppContext.BaseDirectory, "rules");
-        var files = Directory.EnumerateFiles(dir, "*.json", SearchOption.AllDirectories).Where(f => !f.EndsWith(".schema.json")).ToList();
+        var guideDir = Path.Combine(dir, "guides") + Path.DirectorySeparatorChar;
+        var files = Directory.EnumerateFiles(dir, "*.json", SearchOption.AllDirectories)
+            .Where(f => !f.StartsWith(guideDir, StringComparison.OrdinalIgnoreCase) &&
+                !f.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase))
+            .ToList();
         Assert.NotEmpty(files);
         foreach (var f in files)
             Assert.DoesNotContain(Check(File.ReadAllText(f)), p => p.Severity == RuleProblemSeverity.Error);

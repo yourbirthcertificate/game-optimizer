@@ -63,6 +63,8 @@ Library
 
 Rules
   optigame-cli rule list | validate [FILE...]
+  optigame-cli rule validate --guide [FILE...]
+                                      Validate guide JSON or the embedded reviewed pack
   optigame-cli rule snapshot --target PATH|HKCU/... [--format F] [--out FILE]
   optigame-cli rule diff BEFORE.json AFTER.json
   optigame-cli rule wizard --game NAME --target PATH|HKCU/... [--format F]

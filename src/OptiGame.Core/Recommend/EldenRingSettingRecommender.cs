@@ -8,12 +8,9 @@ internal static class EldenRingSettingRecommender
 {
     const int NativeFpsCap = 60;
     const int ReferenceFps = 29;
-    static readonly RecommendationEvidence Benchmarks = new("Digital Trends",
-        "The 2024 test averaged 29 FPS at 1440p Maximum on an 8 GB Radeon RX 580, Ryzen 7 1700X and 16 GB RAM. Its settings guide turns motion blur and depth of field off and lists a 60 FPS game cap.",
-        "https://www.digitaltrends.com/computing/best-settings-for-elden-ring-pc-benchmarks-performance/");
-    static readonly RecommendationEvidence OptionTokens = new("Elden Ring player XML",
-        "A published GraphicsConfig.xml lists MotionBlur and DepthOfField with the DISABLE value.",
-        "https://steamcommunity.com/app/1245620/discussions/0/3183488724676524144/");
+    const string Game = "elden-ring";
+    const string SettingsGuide = "digital-trends";
+    const string XmlSample = "elden-xml";
 
     internal static SettingRecommendationReport Recommend(HardwareInfo hardware, OptimizeRequest request,
         ISettingsDocument settings, (int Width, int Height) currentResolution)
@@ -26,7 +23,14 @@ internal static class EldenRingSettingRecommender
             source = "native game cap";
         }
 
-        var report = new SettingRecommendationReport(fps, source, resolution) { Evidence = [Benchmarks] };
+        var report = new SettingRecommendationReport(fps, source, resolution);
+        var guides = GuidePack.Reviewed;
+        if (guides is null || guides.FindReviewedSource(SettingsGuide) is not { } benchmark ||
+            guides.FindReviewedSource(XmlSample) is not { } optionTokens)
+            return report with { FallbackReason = "The reviewed Elden Ring guide sources are unavailable." };
+
+        var benchmarkEvidence = benchmark.ToEvidence();
+        report = report with { Evidence = [benchmarkEvidence] };
         if (fps is null)
             return report with { FallbackReason = "The FPS target is unknown. Choose a target explicitly or use a detected display." };
         if (fps > NativeFpsCap)
@@ -44,7 +48,7 @@ internal static class EldenRingSettingRecommender
         var capacity = (double)gpu.Score / reference.Score;
         report = report with
         {
-            Evidence = [Benchmarks, new("OptiGame+ GPU table", FormattableString.Invariant(
+            Evidence = [benchmarkEvidence, new("OptiGame+ GPU table", FormattableString.Invariant(
                 $"{gpu.Name} has {capacity:0.###}x the score of the tested Radeon RX 580. The target implies {work:0.###}x its modeled GPU work."))],
             Assumptions =
             [
@@ -63,7 +67,7 @@ internal static class EldenRingSettingRecommender
         return report with
         {
             Settings = advice.ToArray(),
-            Evidence = [.. report.Evidence, OptionTokens],
+            Evidence = [.. report.Evidence, optionTokens.ToEvidence()],
             Skipped = skipped.ToArray(),
             FallbackReason = advice.Count == 0 ? "No documented option could be verified for this configuration." : null,
         };
@@ -74,6 +78,13 @@ internal static class EldenRingSettingRecommender
             if (request.WhyKept(id, Categories.Quality) is { } kept)
             {
                 skipped.Add(label + " is " + kept + ".");
+                return;
+            }
+
+            var suggested = guides.FindReviewedValue(Game, key, SettingsGuide);
+            if (suggested != "Off" || guides.FindReviewedValue(Game, key, XmlSample) != "DISABLE")
+            {
+                skipped.Add(label + " has no reviewed Off value and XML token.");
                 return;
             }
 
@@ -91,7 +102,7 @@ internal static class EldenRingSettingRecommender
                 return;
             }
 
-            advice.Add(new(id, label, currentLevel, "Off",
+            advice.Add(new(id, label, currentLevel, suggested,
                 "Modeled GPU work exceeds the reference. Digital Trends recommends turning this effect off."));
         }
     }

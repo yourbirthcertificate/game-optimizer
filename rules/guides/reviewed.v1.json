@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "cdpr",
+      "name": "CD PROJEKT RED",
+      "url": "https://support.cdprojektred.com/en/cyberpunk/pc/sp-technical/issue/1556/cyberpunk-2077-system-requirements",
+      "retrieved": "2026-11-23",
+      "verified": "2026-11-23",
+      "confidence": "high",
+      "appliesTo": "Cyberpunk 2077 Update 2.0 and Phantom Liberty, non-ray-tracing recommended tier",
+      "summary": "The publisher lists High at 1080p, 60 expected FPS, 8 GB VRAM and 16 GB RAM."
+    },
+    {
+      "id": "pcgamer",
+      "name": "PC Gamer",
+      "url": "https://www.pcgamer.com/the-best-settings-for-cyberpunk-2077/",
+      "retrieved": "2026-11-23",
+      "verified": "2026-11-23",
+      "confidence": "high",
+      "appliesTo": "Cyberpunk 2077 Update 2.0 and Phantom Liberty, raster settings",
+      "summary": "The guide lists its raster option values and describes a smaller visual cost from reducing fog and clouds together than from reducing screen space reflections."
+    },
+    {
+      "id": "toms",
+      "name": "Tom's Hardware",
+      "url": "https://www.tomshardware.com/news/cyberpunk-2077-pc-benchmarks-settings-performance-analysis",
+      "retrieved": "2026-11-23",
+      "verified": "2026-11-23",
+      "confidence": "medium",
+      "appliesTo": "Cyberpunk 2077 launch-version raster run from 2020",
+      "summary": "The 2020 launch-version raster test used Medium screen space reflections. Later builds can use this as a trial level."
+    },
+    {
+      "id": "digital-trends",
+      "name": "Digital Trends",
+      "url": "https://www.digitaltrends.com/computing/best-settings-for-elden-ring-pc-benchmarks-performance/",
+      "retrieved": "2026-11-23",
+      "verified": "2026-11-23",
+      "confidence": "high",
+      "appliesTo": "Elden Ring during the 2024 Shadow of the Erdtree launch period, exact patch unreported",
+      "summary": "The 2024 test averaged 29 FPS at 1440p Maximum on an 8 GB Radeon RX 580, Ryzen 7 1700X and 16 GB RAM. The guide turns motion blur and depth of field off and lists a 60 FPS game cap."
+    },
+    {
+      "id": "elden-xml",
+      "name": "Elden Ring player XML",
+      "url": "https://steamcommunity.com/app/1245620/discussions/0/3183488724676524144/",
+      "retrieved": "2026-11-23",
+      "verified": "2026-11-23",
+      "confidence": "low",
+      "appliesTo": "Elden Ring PC XML shared by a player in July 2022, exact patch unreported",
+      "summary": "The player shared GraphicsConfig.xml with MotionBlur and DepthOfField both set to DISABLE."
+    }
+  ],
+  "advice": [
+    { "game": "cyberpunk-2077", "option": "VolumetricFogResolution", "value": "High", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "VolumetricCloudsQuality", "value": "High", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "ScreenSpaceReflectionsQuality", "value": "High", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "CascadedShadowsRange", "value": "Medium", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "CascadedShadowsResolution", "value": "Medium", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "Anisotropy", "value": "8", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "ShadowMeshQuality", "value": "High", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "LocalShadowsQuality", "value": "High", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "DistantShadowsResolution", "value": "High", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "MaxDynamicDecals", "value": "High", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "SubsurfaceScatteringQuality", "value": "High", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "AmbientOcclusion", "value": "High", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "ColorPrecision", "value": "Medium", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "MirrorQuality", "value": "High", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "LODPreset", "value": "High", "source": "pcgamer" },
+    { "game": "cyberpunk-2077", "option": "ScreenSpaceReflectionsQuality", "value": "Medium", "source": "toms" },
+    { "game": "elden-ring", "option": "MotionBlur", "value": "Off", "source": "digital-trends" },
+    { "game": "elden-ring", "option": "MotionBlur", "value": "DISABLE", "source": "elden-xml" },
+    { "game": "elden-ring", "option": "DepthOfField", "value": "Off", "source": "digital-trends" },
+    { "game": "elden-ring", "option": "DepthOfField", "value": "DISABLE", "source": "elden-xml" }
+  ]
+}
