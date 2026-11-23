@@ -27,6 +27,14 @@ if (-not $iscc) {
 }
 if (-not $iscc) { throw 'Inno Setup 6 was not found. Install it from https://jrsoftware.org/isinfo.php' }
 
+# "What is new" page of the setup program: the newest changelog section as plain text.
+$sections = (Get-Content (Join-Path $root 'CHANGELOG.md') -Raw) -split '(?m)^## '
+$latest = $sections | Where-Object { $_ -match "^$([regex]::Escape($version))\s" } | Select-Object -First 1
+if (-not $latest) { $latest = $sections | Where-Object { $_ -match '^\d' } | Select-Object -First 1 }
+$text = ($latest -replace '`', '' -replace '\[([^\]]+)\]\([^)]*\)', '$1' -replace '[^\u0009\u000A\u000D\u0020-\u007E]', '-').Trim()
+$text = $text -replace '(?m)(?<=\S)\r?\n(?!\r?\n|- )\s*', ' ' -replace '^\S+\s+', ''
+[System.IO.File]::WriteAllText((Join-Path $PSScriptRoot 'whatsnew.txt'), (($text -split "`r?`n") -join "`r`n"), [System.Text.Encoding]::ASCII)
+
 $distFull = (Resolve-Path $Dist).Path
 & $iscc "/DAppVersion=$version" "/DDistDir=$distFull" (Join-Path $root 'installer\OptiGame.iss')
 if ($LASTEXITCODE) { throw 'Inno Setup failed' }

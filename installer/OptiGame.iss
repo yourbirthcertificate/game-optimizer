@@ -32,7 +32,10 @@ UninstallDisplayIcon={app}\OptiGame.exe
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
+DisableWelcomePage=no
 LicenseFile=..\LICENSE
+WizardImageFile=assets\side.bmp
+WizardSmallImageFile=assets\corner.bmp
 InfoBeforeFile=before.txt
 InfoAfterFile=after.txt
 CloseApplications=yes
@@ -42,11 +45,17 @@ UsedUserAreasWarning=no
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+[Messages]
+WelcomeLabel1=Welcome to OptiGame+
+WelcomeLabel2=OptiGame+ {#AppVersion} finds the games on this PC, recommends graphics settings for each, and clears resources while you play.%n%nEvery change is previewed first, backed up, and can be undone. Your settings, backups and history are never touched by installing or updating.
+FinishedHeadingLabel=OptiGame+ is ready
+
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; Flags: unchecked
 Name: "startup"; Description: "Start OptiGame+ with &Windows (hidden in the tray, so it can boost games automatically)"; Flags: unchecked
 
 [Files]
+Source: "whatsnew.txt"; DestDir: "{tmp}"; Flags: dontcopy
 Source: "{#DistDir}\OptiGame.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#DistDir}\optigame-cli.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
@@ -69,6 +78,39 @@ Filename: "{app}\OptiGame.exe"; Flags: nowait; Check: RelaunchAfterSilent
 Type: filesandordirs; Name: "{localappdata}\GameOpt\update"
 
 [Code]
+var
+  Tips: array[0..3] of String;
+
+procedure InitializeWizard;
+var
+  Notes: AnsiString;
+  Page: TOutputMsgMemoWizardPage;
+begin
+  Tips[0] := 'Preview every change first. Nothing is written until you press Apply.';
+  Tips[1] := 'Each Apply makes a backup. Undo is on the game''s page.';
+  Tips[2] := 'Turn on Auto-boost on the Dashboard to clear resources when a game starts.';
+  Tips[3] := 'Can this PC run it? on a game''s page checks it against your hardware.';
+
+  ExtractTemporaryFile('whatsnew.txt');
+  if LoadStringFromFile(ExpandConstant('{tmp}\whatsnew.txt'), Notes) then
+  begin
+    Page := CreateOutputMsgMemoPage(wpWelcome, 'What is new', 'Changes in version {#AppVersion}',
+      'This is the changelog entry for this version.', String(Notes));
+    Page.RichEditViewer.Font.Name := 'Segoe UI';
+  end;
+end;
+
+{ Shows a different tip as the install moves along. Silent installs never show it. }
+procedure CurInstallProgressChanged(CurProgress, MaxProgress: Integer);
+var
+  I: Integer;
+begin
+  if MaxProgress <= 0 then Exit;
+  I := (CurProgress * 4) div (MaxProgress + 1);
+  if I > 3 then I := 3;
+  WizardForm.PageDescriptionLabel.Caption := 'Tip: ' + Tips[I];
+end;
+
 function RelaunchAfterSilent: Boolean;
 begin
   { /NOLAUNCH=1 lets a test install run without starting the app. }
