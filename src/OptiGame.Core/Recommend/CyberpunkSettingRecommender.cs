@@ -15,8 +15,11 @@ internal static class CyberpunkSettingRecommender
     const string OptionTestsUrl = "https://www.pcgamer.com/the-best-settings-for-cyberpunk-2077/";
     static readonly RecommendationEvidence Requirements = new("CD PROJEKT RED",
         "The recommended non-ray-tracing tier for the base game from Update 2.0 and Phantom Liberty lists High at 1080p, 60 expected FPS, 8 GB VRAM, and 16 GB RAM.", RequirementsUrl);
+    static readonly RecommendationEvidence ReflectionTests = new("Tom's Hardware",
+        "The 2020 launch-version raster test used Medium screen space reflections. Use it as a trial level for Update 2.0 and later.",
+        "https://www.tomshardware.com/news/cyberpunk-2077-pc-benchmarks-settings-performance-analysis");
     static readonly RecommendationEvidence OptionTests = new("PC Gamer",
-        "The published raster settings list High for volumetric fog and clouds. PC Gamer suggests turning both down first because it found a smaller visual impact than lowering screen space reflections.", OptionTestsUrl);
+        "The Update 2.0 raster guide supplies the reference values. It suggests turning down fog and clouds first because it found a smaller visual impact than lowering screen space reflections.", OptionTestsUrl);
 
     internal static SettingRecommendationReport Recommend(HardwareInfo hardware, OptimizeRequest request, RedSettingsFile file)
     {
@@ -82,17 +85,37 @@ internal static class CyberpunkSettingRecommender
 
         var settings = new List<SettingRecommendation>();
         var skipped = new List<string>();
-        var target = work > capacity ? "Medium" : "High";
-        Add("VolumetricFogResolution", "Volumetric fog resolution");
-        Add("VolumetricCloudsQuality", "Volumetric cloud quality");
+        var underPressure = work > capacity;
+        const string volumetricTrial = "Try Medium first when modeled GPU work exceeds the reference. PC Gamer recommends reducing fog and clouds before reflections.";
+        const string cascadedTrial = "PC Gamer uses Medium in its raster guide. Use that as a trial level when modeled GPU work exceeds the reference.";
+        Add("VolumetricFogResolution", "Volumetric fog resolution", "High", volumetricTrial);
+        Add("VolumetricCloudsQuality", "Volumetric cloud quality", "High", volumetricTrial);
+        Add("ScreenSpaceReflectionsQuality", "Screen space reflections", "High",
+            "If you still need performance after fog and clouds, try Medium. PC Gamer found a visible loss of reflection quality when lowering this setting.");
+        Add("CascadedShadowsRange", "Cascaded shadows range", "Medium", cascadedTrial);
+        Add("CascadedShadowsResolution", "Cascaded shadows resolution", "Medium", cascadedTrial);
+
+        Add("Anisotropy", "Anisotropy", "8", isNumeric: true);
+        Add("ShadowMeshQuality", "Local shadow mesh quality", "High");
+        Add("LocalShadowsQuality", "Local shadow quality", "High");
+        Add("DistantShadowsResolution", "Distant shadows resolution", "High");
+        Add("MaxDynamicDecals", "Max dynamic decals", "High");
+        Add("SubsurfaceScatteringQuality", "Subsurface scattering quality", "High");
+        Add("AmbientOcclusion", "Ambient occlusion", "High");
+        Add("ColorPrecision", "Color precision", "Medium");
+        Add("MirrorQuality", "Mirror quality", "High");
+        Add("LODPreset", "Level of detail", "High");
+
+        skipped.Add("Crowd density has no CPU budget in this estimate.");
+        skipped.Add("Texture quality and global illumination range have no verified values in the cited raster guide.");
         return report with
         {
             Settings = settings.ToArray(), Evidence = evidence.ToArray(), Assumptions = assumptions.ToArray(),
             Skipped = skipped.ToArray(),
-            FallbackReason = settings.Count == 0 ? "Neither tested option could be recommended for this configuration." : null,
+            FallbackReason = settings.Count == 0 ? "No setting with published guidance could be recommended for this configuration." : null,
         };
 
-        void Add(string name, string label)
+        void Add(string name, string label, string referenceValue, string? pressureReason = null, bool isNumeric = false)
         {
             var id = Planner.RedId(Advanced, name);
             if (request.WhyKept(id, Categories.Quality) is { } kept)
@@ -101,24 +124,38 @@ internal static class CyberpunkSettingRecommender
                 return;
             }
 
+            if (underPressure && pressureReason is null)
+            {
+                skipped.Add(label + " has only a published reference value for this comparison.");
+                return;
+            }
+
+            var target = underPressure ? "Medium" : referenceValue;
+            var targetRaw = isNumeric ? target : Quoted(target);
+            var expectedType = isNumeric ? "int_list" : "string_list";
             var matches = file.Options.Where(option => option.Group == Advanced && option.Name == name).ToArray();
             var current = file.GetRaw(Advanced, name);
-            if (matches is not [var option] || option.IsDynamic || option.Type != "string_list" ||
-                current is not ("\"Off\"" or "\"Low\"" or "\"Medium\"" or "\"High\"" or "\"Ultra\"") ||
-                option.Values.Count(v => v == current) != 1 || option.Values.Count(v => v == Quoted(target)) != 1)
+            if (matches is not [var option] || option.IsDynamic || option.Type != expectedType ||
+                current is null || !IsKnownValue(current, isNumeric) ||
+                option.Values.Count(v => v == current) != 1 || option.Values.Count(v => v == targetRaw) != 1)
             {
                 skipped.Add(label + " has no unique current value and suggested choice in this build.");
                 return;
             }
 
-            var selected = current[1..^1];
-            var suggestion = target == "Medium" && selected is ("Off" or "Low") ? selected : target;
-            var reason = suggestion != target
-                ? "Already below the Medium trial. Keep the lower choice when modeled GPU work exceeds the reference."
-                : target == "Medium"
-                    ? "Modeled GPU work exceeds the reference. Try Medium to reduce rendering work while keeping the effect."
-                    : "Modeled GPU work fits the reference. High is the option used in the published raster settings tests.";
-            settings.Add(new(id, label, selected, suggestion, reason));
+            var selected = isNumeric ? current : current[1..^1];
+            if (underPressure && selected is ("Off" or "Low"))
+            {
+                settings.Add(new(id, label, selected, selected, "Keep the current lower choice while modeled GPU work exceeds the reference."));
+                return;
+            }
+
+            var reason = underPressure
+                ? pressureReason!
+                : "Modeled GPU work fits the reference. This is the value in PC Gamer's raster settings guide.";
+            settings.Add(new(id, label, selected, target, reason));
+            if (underPressure && name == "ScreenSpaceReflectionsQuality")
+                evidence.Add(ReflectionTests);
         }
     }
 
@@ -135,6 +172,10 @@ internal static class CyberpunkSettingRecommender
                 _ => false,
             });
     }
+
+    static bool IsKnownValue(string raw, bool isNumeric) => isNumeric
+        ? int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out _)
+        : raw is ("\"Off\"" or "\"Low\"" or "\"Medium\"" or "\"High\"" or "\"Ultra\"" or "\"Insane\"");
 
     static string Quoted(string value) => "\"" + value + "\"";
 

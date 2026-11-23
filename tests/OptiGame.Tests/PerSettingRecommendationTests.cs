@@ -25,10 +25,18 @@ public sealed class PerSettingRecommendationTests
         var document = RedSettingsFile.Parse(original);
         var standard = CyberpunkSettingRecommender.Recommend(Hardware(), Request(60), document);
         var faster = CyberpunkSettingRecommender.Recommend(Hardware(), Request(90), document);
-        Assert.Equal(2, standard.Settings.Count);
-        Assert.All(standard.Settings, setting => Assert.Equal("High", setting.SuggestedValue));
-        Assert.Equal(2, faster.Settings.Count);
+        Assert.Equal(15, standard.Settings.Count);
+        Assert.Equal("8", Assert.Single(standard.Settings, setting => setting.Name == "Anisotropy").SuggestedValue);
+        Assert.Equal("High", Assert.Single(standard.Settings, setting => setting.Name == "Screen space reflections").SuggestedValue);
+        Assert.Equal("Medium", Assert.Single(standard.Settings, setting => setting.Name == "Cascaded shadows range").SuggestedValue);
+        Assert.Equal("High", Assert.Single(standard.Settings, setting => setting.Name == "Ambient occlusion").SuggestedValue);
+
+        Assert.Equal(5, faster.Settings.Count);
         Assert.All(faster.Settings, setting => Assert.Equal("Medium", setting.SuggestedValue));
+        Assert.Contains("after fog and clouds", Assert.Single(faster.Settings, setting => setting.Name == "Screen space reflections").Reason);
+        Assert.Contains(faster.Evidence, item => item.Source == "Tom's Hardware" && item.Detail.Contains("2020", StringComparison.Ordinal));
+        Assert.Contains(faster.Skipped, skip => skip.StartsWith("Ambient occlusion", StringComparison.Ordinal));
+        Assert.Contains(standard.Skipped, skip => skip.StartsWith("Crowd density", StringComparison.Ordinal));
         Assert.Contains(faster.Evidence, item => item.Source == "CD PROJEKT RED" && item.Url is not null);
         Assert.Contains(faster.Evidence, item => item.Source == "PC Gamer" && item.Url is not null);
         Assert.Equal(original, document.ToBytes());
@@ -77,7 +85,8 @@ public sealed class PerSettingRecommendationTests
 
         var kept = CyberpunkSettingRecommender.Recommend(Hardware(), Request(60, keep: true), file);
         Assert.Empty(kept.Settings);
-        Assert.Equal(2, kept.Skipped.Count);
+        Assert.Contains(kept.Skipped, skip => skip.StartsWith("Screen space reflections", StringComparison.Ordinal));
+        Assert.NotNull(kept.FallbackReason);
     }
 
     [Fact]
