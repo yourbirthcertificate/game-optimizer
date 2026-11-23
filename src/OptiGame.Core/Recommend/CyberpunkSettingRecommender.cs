@@ -11,15 +11,9 @@ internal static class CyberpunkSettingRecommender
     const int VramMinimum = 8;
     const int RamMinimum = 16;
     const string Advanced = "/graphics/advanced";
-    const string RequirementsUrl = "https://support.cdprojektred.com/en/cyberpunk/pc/sp-technical/issue/1556/cyberpunk-2077-system-requirements";
-    const string OptionTestsUrl = "https://www.pcgamer.com/the-best-settings-for-cyberpunk-2077/";
-    static readonly RecommendationEvidence Requirements = new("CD PROJEKT RED",
-        "The recommended non-ray-tracing tier for the base game from Update 2.0 and Phantom Liberty lists High at 1080p, 60 expected FPS, 8 GB VRAM, and 16 GB RAM.", RequirementsUrl);
-    static readonly RecommendationEvidence ReflectionTests = new("Tom's Hardware",
-        "The 2020 launch-version raster test used Medium screen space reflections. Use it as a trial level for Update 2.0 and later.",
-        "https://www.tomshardware.com/news/cyberpunk-2077-pc-benchmarks-settings-performance-analysis");
-    static readonly RecommendationEvidence OptionTests = new("PC Gamer",
-        "The Update 2.0 raster guide supplies the reference values. It suggests turning down fog and clouds first because it found a smaller visual impact than lowering screen space reflections.", OptionTestsUrl);
+    const string Game = "cyberpunk-2077";
+    const string RasterGuide = "pcgamer";
+    const string LaunchBenchmark = "toms";
 
     internal static SettingRecommendationReport Recommend(HardwareInfo hardware, OptimizeRequest request, RedSettingsFile file)
     {
@@ -34,11 +28,17 @@ internal static class CyberpunkSettingRecommender
             return Fallback("A target resolution is unavailable. The current game's resolution was kept or could not be resolved.");
         if (string.IsNullOrEmpty(request.Display.DeviceName))
             return Fallback("The target display could not be verified.");
+        var guides = GuidePack.Reviewed;
+        if (guides is null || guides.FindReviewedSource("cdpr") is not { } requirements ||
+            guides.FindReviewedSource(RasterGuide) is not { } rasterGuide)
+            return Fallback("The reviewed Cyberpunk guide sources are unavailable.");
+        var requirementsEvidence = requirements.ToEvidence();
+
         if (!RayTracingIsOff(file))
-            return Fallback("The published reference is for ray tracing off, which could not be verified in the current settings.", Requirements);
+            return Fallback("The published reference is for ray tracing off, which could not be verified in the current settings.", requirementsEvidence);
 
         if (GpuMatcher.Identify(hardware.Gpu) is not { Score: > 0 } gpu || gpu.Kind == "generic")
-            return Fallback("The graphics card has no specific score in the local table.", Requirements);
+            return Fallback("The graphics card has no specific score in the local table.", requirementsEvidence);
 
         var referenceName = gpu.Vendor switch
         {
@@ -48,27 +48,27 @@ internal static class CyberpunkSettingRecommender
             _ => null,
         };
         if (referenceName is null || GpuMatcher.Identify(referenceName) is not { Kind: "exact", Score: > 0 } reference)
-            return Fallback("No same-vendor GPU reference is available in the local table.", Requirements);
+            return Fallback("No same-vendor GPU reference is available in the local table.", requirementsEvidence);
 
         var specs = new RecommendationEvidence("This PC", FormattableString.Invariant(
             $"{hardware.Gpu}, {hardware.GpuVramGb:0.#} GB VRAM, {hardware.RamGb:0.#} GB RAM, CPU {hardware.Cpu}."));
         if (!double.IsFinite(hardware.GpuVramGb) || !double.IsFinite(hardware.RamGb) ||
             hardware.GpuVramGb <= 0 || hardware.RamGb <= 0)
-            return Fallback("Detected VRAM and RAM are needed for this comparison.", Requirements, specs);
+            return Fallback("Detected VRAM and RAM are needed for this comparison.", requirementsEvidence, specs);
         // Windows can report slightly less usable memory than the rated capacity.
         if (Math.Round(hardware.GpuVramGb, MidpointRounding.AwayFromZero) < VramMinimum ||
             Math.Round(hardware.RamGb, MidpointRounding.AwayFromZero) < RamMinimum)
-            return Fallback("The PC is below the memory listed for the High reference. These option tests do not establish what will make up that deficit.", Requirements, specs);
+            return Fallback("The PC is below the memory listed for the High reference. These option tests do not establish what will make up that deficit.", requirementsEvidence, specs);
 
         // Use the existing resolution model and compare only relative GPU work. Do not predict FPS.
         var work = fps.Value / ReferenceFps * Recommender.ResolutionFactor(resolution.w, resolution.h);
         var capacity = (double)gpu.Score / reference.Score;
         if (!double.IsFinite(work) || work <= 0)
-            return Fallback("The requested target is outside the supported comparison range.", Requirements, specs);
+            return Fallback("The requested target is outside the supported comparison range.", requirementsEvidence, specs);
 
         var evidence = new List<RecommendationEvidence>
         {
-            Requirements, OptionTests, specs,
+            requirementsEvidence, rasterGuide.ToEvidence(), specs,
             new("OptiGame+ GPU table", FormattableString.Invariant(
                 $"{gpu.Name} has {capacity:0.###}x the graphics score of the published {reference.Name} reference. The requested resolution and FPS imply {work:0.###}x its modeled GPU work.")),
         };
@@ -88,23 +88,28 @@ internal static class CyberpunkSettingRecommender
         var underPressure = work > capacity;
         const string volumetricTrial = "Try Medium first when modeled GPU work exceeds the reference. PC Gamer recommends reducing fog and clouds before reflections.";
         const string cascadedTrial = "PC Gamer uses Medium in its raster guide. Use that as a trial level when modeled GPU work exceeds the reference.";
-        Add("VolumetricFogResolution", "Volumetric fog resolution", "High", volumetricTrial);
-        Add("VolumetricCloudsQuality", "Volumetric cloud quality", "High", volumetricTrial);
-        Add("ScreenSpaceReflectionsQuality", "Screen space reflections", "High",
-            "If you still need performance after fog and clouds, try Medium. PC Gamer found a visible loss of reflection quality when lowering this setting.");
-        Add("CascadedShadowsRange", "Cascaded shadows range", "Medium", cascadedTrial);
-        Add("CascadedShadowsResolution", "Cascaded shadows resolution", "Medium", cascadedTrial);
+        Add("VolumetricFogResolution", "Volumetric fog resolution", volumetricTrial, "Medium");
+        Add("VolumetricCloudsQuality", "Volumetric cloud quality", volumetricTrial, "Medium");
+        const string reflections = "ScreenSpaceReflectionsQuality";
+        if (guides.FindReviewedValue(Game, reflections, LaunchBenchmark) is { } reflectionTrial)
+            Add(reflections, "Screen space reflections",
+                "If you still need performance after fog and clouds, try the launch-test value. PC Gamer found a visible loss of reflection quality when lowering this setting.",
+                reflectionTrial, trialEvidence: guides.FindReviewedSource(LaunchBenchmark));
+        else
+            Add(reflections, "Screen space reflections");
 
-        Add("Anisotropy", "Anisotropy", "8", isNumeric: true);
-        Add("ShadowMeshQuality", "Local shadow mesh quality", "High");
-        Add("LocalShadowsQuality", "Local shadow quality", "High");
-        Add("DistantShadowsResolution", "Distant shadows resolution", "High");
-        Add("MaxDynamicDecals", "Max dynamic decals", "High");
-        Add("SubsurfaceScatteringQuality", "Subsurface scattering quality", "High");
-        Add("AmbientOcclusion", "Ambient occlusion", "High");
-        Add("ColorPrecision", "Color precision", "Medium");
-        Add("MirrorQuality", "Mirror quality", "High");
-        Add("LODPreset", "Level of detail", "High");
+        Add("CascadedShadowsRange", "Cascaded shadows range", cascadedTrial);
+        Add("CascadedShadowsResolution", "Cascaded shadows resolution", cascadedTrial);
+        Add("Anisotropy", "Anisotropy", isNumeric: true);
+        Add("ShadowMeshQuality", "Local shadow mesh quality");
+        Add("LocalShadowsQuality", "Local shadow quality");
+        Add("DistantShadowsResolution", "Distant shadows resolution");
+        Add("MaxDynamicDecals", "Max dynamic decals");
+        Add("SubsurfaceScatteringQuality", "Subsurface scattering quality");
+        Add("AmbientOcclusion", "Ambient occlusion");
+        Add("ColorPrecision", "Color precision");
+        Add("MirrorQuality", "Mirror quality");
+        Add("LODPreset", "Level of detail");
 
         skipped.Add("Crowd density has no CPU budget in this estimate.");
         skipped.Add("Texture quality and global illumination range have no verified values in the cited raster guide.");
@@ -115,12 +120,19 @@ internal static class CyberpunkSettingRecommender
             FallbackReason = settings.Count == 0 ? "No setting with published guidance could be recommended for this configuration." : null,
         };
 
-        void Add(string name, string label, string referenceValue, string? pressureReason = null, bool isNumeric = false)
+        void Add(string name, string label, string? pressureReason = null, string? trialValue = null,
+            bool isNumeric = false, GuideSource? trialEvidence = null)
         {
             var id = Planner.RedId(Advanced, name);
             if (request.WhyKept(id, Categories.Quality) is { } kept)
             {
                 skipped.Add(label + " is " + kept + ".");
+                return;
+            }
+
+            if (guides.FindReviewedValue(Game, name, RasterGuide) is not { } referenceValue)
+            {
+                skipped.Add(label + " has no value in the reviewed raster guide.");
                 return;
             }
 
@@ -130,7 +142,7 @@ internal static class CyberpunkSettingRecommender
                 return;
             }
 
-            var target = underPressure ? "Medium" : referenceValue;
+            var target = underPressure ? trialValue ?? referenceValue : referenceValue;
             var targetRaw = isNumeric ? target : Quoted(target);
             var expectedType = isNumeric ? "int_list" : "string_list";
             var matches = file.Options.Where(option => option.Group == Advanced && option.Name == name).ToArray();
@@ -154,8 +166,8 @@ internal static class CyberpunkSettingRecommender
                 ? pressureReason!
                 : "Modeled GPU work fits the reference. This is the value in PC Gamer's raster settings guide.";
             settings.Add(new(id, label, selected, target, reason));
-            if (underPressure && name == "ScreenSpaceReflectionsQuality")
-                evidence.Add(ReflectionTests);
+            if (underPressure && trialEvidence is not null)
+                evidence.Add(trialEvidence.ToEvidence());
         }
     }
 

@@ -11,6 +11,7 @@
     <EmbeddedResource Include="..\..\data\gpus.json" LogicalName="OptiGame.Core.data.gpus.json" />
     <EmbeddedResource Include="..\..\data\vendors.json" LogicalName="OptiGame.Core.data.vendors.json" />
     <EmbeddedResource Include="Library\ConfigDiscovery\locations.json" LogicalName="OptiGame.Core.config.locations.json" />
+    <EmbeddedResource Include="..\..\rules\guides\reviewed.v1.json" LogicalName="OptiGame.Core.guides.reviewed.v1.json" />
   </ItemGroup>
 
   <ItemGroup>

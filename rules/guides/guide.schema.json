@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OptiGame+ offline guide pack",
+  "description": "Run optigame-cli rule validate --guide to also check source references, allowed origins, dates and duplicate entries.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sources", "advice"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sources": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/source" } },
+    "advice": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/advice" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "text": { "type": "string", "pattern": "\\S" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "url", "retrieved", "appliesTo", "summary", "confidence"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/text" },
+        "url": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "retrieved": { "type": "string", "format": "date" },
+        "verified": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "Date the citation was checked. It does not certify results on a current game build."
+        },
+        "appliesTo": { "$ref": "#/$defs/text", "description": "Game version, build or publication-era scope supported by the source." },
+        "summary": { "$ref": "#/$defs/text", "description": "Paraphrase the relevant observation without quoting the source." },
+        "confidence": { "enum": ["high", "medium", "low"], "description": "Confidence in the cited observation in its stated scope." }
+      }
+    },
+    "advice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["game", "option", "source"],
+      "properties": {
+        "game": { "$ref": "#/$defs/id" },
+        "option": { "$ref": "#/$defs/text" },
+        "source": { "$ref": "#/$defs/id" },
+        "value": { "anyOf": [{ "$ref": "#/$defs/text" }, { "type": "null" }] },
+        "direction": { "enum": ["lower", "raise", "keep", null] }
+      },
+      "oneOf": [
+        { "required": ["value"], "properties": { "value": { "type": "string" }, "direction": { "type": "null" } } },
+        { "required": ["direction"], "properties": { "value": { "type": "null" }, "direction": { "type": "string" } } }
+      ]
+    }
+  }
+}
