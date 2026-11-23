@@ -436,14 +436,19 @@ public static partial class Cli
                 var gameName = Opt(rest, "--game").FirstOrDefault() ?? throw new ArgumentException("Use: optigame-cli bench import FILE --game NAME [--label before|after] [--notes TEXT]");
                 var label = Opt(rest, "--label").FirstOrDefault() ?? "";
                 var notes = Opt(rest, "--notes").FirstOrDefault();
-                var file = rest.FirstOrDefault() ?? throw new ArgumentException("Give the CSV file.");
+                var contextFiles = Opt(rest, "--capture-context");
+                if (contextFiles.Count > 1) throw new ArgumentException("Give one capture context file.");
+                var file = rest is [var csv] ? csv : throw new ArgumentException("Give one CSV file.");
+                var context = contextFiles is [var contextFile] ? BenchmarkCaptureContext.Parse(File.ReadAllText(contextFile)) : null;
                 var s = Load(quietNotes: true);
                 var g = One(s, gameName);
                 var req = s.RequestFor(g);
                 var r = BenchmarkStore.Import(file, g.Id, g.Name, label, s.HardwareSummary, req.ProfileName, req.Step.Label(),
-                    req.Resolution is var (w, h) ? $"{w}x{h}" : "kept", req.FpsText, notes);
+                    req.Resolution is var (w, h) ? FormattableString.Invariant($"{w}x{h}") : "kept", req.FpsText, notes, context);
                 Console.WriteLine($"Imported {r.Id} ({r.SourceFormat}): {r.Summary}.");
-                Console.WriteLine("Context recorded: the game's current profile, step, resolution and cap in GameOptimizer. Check they match what you ran.");
+                Console.WriteLine(context is null
+                    ? "The import records current OptiGame+ preferences. Add capture metadata for an isolated setting comparison."
+                    : "Recorded the supplied capture context.");
                 return 0;
             case "list":
                 var filter = Opt(rest, "--game").FirstOrDefault();
@@ -459,6 +464,13 @@ public static partial class Cli
                 Console.WriteLine(string.Create(inv, $"  1% low FPS {one.Metrics.OnePercentLowFps:0.#} (1000 / 99th percentile frame time of {one.Metrics.P99FrameTimeMs:0.##} ms)"));
                 Console.WriteLine(string.Create(inv, $"  Worst frame {one.Metrics.MaxFrameTimeMs:0.##} ms"));
                 Console.WriteLine($"  Settings: {one.ProfileName} / {one.Step}, {one.Resolution}, cap {one.FpsCap}; hardware {one.Hardware}");
+                if (one.CaptureContext is { } capture)
+                {
+                    Console.WriteLine(FormattableString.Invariant(
+                        $"  Capture {capture.PairId}, {capture.GameBuild}, {capture.Scenario}, {capture.Width}x{capture.Height}, cap {capture.FrameCap}, {capture.RenderMode}, {capture.Hardware}"));
+                    foreach (var (key, value) in capture.Settings.OrderBy(item => item.Key, StringComparer.Ordinal))
+                        Console.WriteLine("    " + key + " = " + value);
+                }
                 if (one.Notes is not null) Console.WriteLine($"  Notes: {one.Notes}");
                 return 0;
             case "compare":
@@ -469,6 +481,8 @@ public static partial class Cli
                 Console.WriteLine($"{a.Label} ({a.Id}) -> {b2.Label} ({b2.Id}), {a.GameName}");
                 foreach (var d in c.Differences) Console.WriteLine("  " + d);
                 foreach (var w2 in c.Warnings) Console.WriteLine("  Note: " + w2);
+                if (BenchmarkSettingEvidence.Compare(a, b2) is { } measured)
+                    Console.WriteLine("  Recorded comparison: " + measured.ToEvidence().Detail);
                 Console.WriteLine("These are measurements of two runs; they do not predict other scenes or settings.");
                 return 0;
             case "prefer":

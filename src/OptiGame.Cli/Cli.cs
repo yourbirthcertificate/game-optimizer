@@ -74,7 +74,7 @@ Rules
                                       pick keys and values, validate, save a local rule, preview it
 
 Benchmarks (local only)
-  optigame-cli bench import FILE --game NAME [--label before|after|TEXT] [--notes TEXT]
+  optigame-cli bench import FILE --game NAME [--label before|after|TEXT] [--notes TEXT] [--capture-context FILE]
   optigame-cli bench list [--game NAME] | show ID | compare ID_A ID_B | prefer ID | delete ID
 
 Preferences
@@ -89,7 +89,7 @@ Settings for profiles and games (key=value):
 """ + SettingsParser.Help + """
 
 Recommendations read published requirements from Steam and PCGamingWiki (only the Steam app id is
-sent) and cache them for a week. Measured benchmarks are shown beside them and never change them.
+sent) and cache them for a week. Comparable local captures can add evidence to per-setting advice.
 """;
 
     public static async Task<int> Run(string[] args)
