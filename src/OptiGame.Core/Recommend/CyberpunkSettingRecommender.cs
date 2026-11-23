@@ -18,10 +18,12 @@ internal static class CyberpunkSettingRecommender
     internal static SettingRecommendationReport Recommend(HardwareInfo hardware, OptimizeRequest request, RedSettingsFile file)
     {
         var (fps, source) = SettingRecommendationReport.ResolveTarget(request);
-        var report = new SettingRecommendationReport(fps, source, request.Resolution);
+        var report = new SettingRecommendationReport(fps, source, request.Resolution) { Priority = request.RecommendationPriority };
         SettingRecommendationReport Fallback(string reason, params RecommendationEvidence[] evidence) =>
             report with { FallbackReason = reason, Evidence = evidence };
 
+        if (report.Priority == RecommendationPriority.Quiet)
+            return Fallback("Quiet priority needs measured noise or power data for these settings.");
         if (fps is null)
             return Fallback("The FPS target is unknown. Choose a target explicitly or use a detected display.");
         if (request.Resolution is not { w: > 0, h: > 0 } resolution)
@@ -86,6 +88,15 @@ internal static class CyberpunkSettingRecommender
         var settings = new List<SettingRecommendation>();
         var skipped = new List<string>();
         var underPressure = work > capacity;
+        if (underPressure && report.Priority == RecommendationPriority.Look)
+            return report with
+            {
+                Evidence = evidence.ToArray(),
+                Assumptions = assumptions.ToArray(),
+                FallbackReason = "Look priority keeps current visual settings when the modeled FPS target calls for lower settings.",
+            };
+
+        var useTrials = underPressure || report.Priority == RecommendationPriority.Speed;
         const string volumetricTrial = "Try Medium first when modeled GPU work exceeds the reference. PC Gamer recommends reducing fog and clouds before reflections.";
         const string cascadedTrial = "PC Gamer uses Medium in its raster guide. Use that as a trial level when modeled GPU work exceeds the reference.";
         Add("VolumetricFogResolution", "Volumetric fog resolution", volumetricTrial, "Medium");
@@ -136,13 +147,13 @@ internal static class CyberpunkSettingRecommender
                 return;
             }
 
-            if (underPressure && pressureReason is null)
+            if (useTrials && pressureReason is null)
             {
                 skipped.Add(label + " has only a published reference value for this comparison.");
                 return;
             }
 
-            var target = underPressure ? trialValue ?? referenceValue : referenceValue;
+            var target = useTrials ? trialValue ?? referenceValue : referenceValue;
             var targetRaw = isNumeric ? target : Quoted(target);
             var expectedType = isNumeric ? "int_list" : "string_list";
             var matches = file.Options.Where(option => option.Group == Advanced && option.Name == name).ToArray();
@@ -156,17 +167,23 @@ internal static class CyberpunkSettingRecommender
             }
 
             var selected = isNumeric ? current : current[1..^1];
-            if (underPressure && selected is ("Off" or "Low"))
+            if (report.Priority == RecommendationPriority.Look && QualityRank(selected) > QualityRank(target))
             {
-                settings.Add(new(id, label, selected, selected, "Keep the current lower choice while modeled GPU work exceeds the reference."));
+                settings.Add(new(id, label, selected, selected, "Look priority keeps the current higher quality setting."));
                 return;
             }
 
-            var reason = underPressure
-                ? pressureReason!
+            if (useTrials && selected is ("Off" or "Low"))
+            {
+                settings.Add(new(id, label, selected, selected, "Keep the current lower choice while favoring performance."));
+                return;
+            }
+
+            var reason = useTrials
+                ? underPressure ? pressureReason! : "Speed priority favors this trial value for additional rendering headroom."
                 : "Modeled GPU work fits the reference. This is the value in PC Gamer's raster settings guide.";
             settings.Add(new(id, label, selected, target, reason));
-            if (underPressure && trialEvidence is not null)
+            if (useTrials && trialEvidence is not null)
                 evidence.Add(trialEvidence.ToEvidence());
         }
     }
@@ -188,6 +205,12 @@ internal static class CyberpunkSettingRecommender
     static bool IsKnownValue(string raw, bool isNumeric) => isNumeric
         ? int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out _)
         : raw is ("\"Off\"" or "\"Low\"" or "\"Medium\"" or "\"High\"" or "\"Ultra\"" or "\"Insane\"");
+
+    static int QualityRank(string value) => value switch
+    {
+        "Off" => 0, "Low" => 1, "Medium" => 2, "High" => 3, "Ultra" => 4, "Insane" => 5,
+        _ => int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var level) ? level : -1,
+    };
 
     static string Quoted(string value) => "\"" + value + "\"";
 

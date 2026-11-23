@@ -99,10 +99,13 @@ public sealed class EldenRingTests : IDisposable
             """);
         File.WriteAllText(_path, input);
         var hardware = new HardwareInfo { Gpu = "Radeon RX 580", GpuVramGb = 8, RamGb = 16 };
-        GamePlan Plan(double fps, params string[] preserve) => Planner.Plan(_game, hardware, new OptimizeRequest
+        GamePlan Plan(double fps, params string[] preserve) => PlanWithPriority(fps, RecommendationPriority.Balanced, preserve);
+        GamePlan PlanWithPriority(double fps, RecommendationPriority priority, params string[] preserve) =>
+            Planner.Plan(_game, hardware, new OptimizeRequest
         {
             Display = new DisplayInfo { DeviceName = "fixture", CurrentHz = 60 },
             RecommendationTargetFps = fps,
+            RecommendationPriority = priority,
             Preserve = [.. preserve],
         }, []);
 
@@ -121,6 +124,11 @@ public sealed class EldenRingTests : IDisposable
             Assert.Equal(input, File.ReadAllText(_path));
 
             Assert.Contains("fits", Plan(20).SettingAdvice!.FallbackReason);
+            var speed = PlanWithPriority(20, RecommendationPriority.Speed).SettingAdvice!;
+            Assert.Equal(2, speed.Settings.Count);
+            Assert.All(speed.Settings, option => Assert.Contains("Speed priority", option.Reason));
+            Assert.Contains("Look priority", PlanWithPriority(59.94, RecommendationPriority.Look).SettingAdvice!.FallbackReason);
+            Assert.Contains("noise or power data", PlanWithPriority(59.94, RecommendationPriority.Quiet).SettingAdvice!.FallbackReason);
             Assert.Contains("60 FPS cap", Plan(90).SettingAdvice!.FallbackReason);
             Assert.Empty(Plan(59.94, Categories.Quality).SettingAdvice!.Settings);
 

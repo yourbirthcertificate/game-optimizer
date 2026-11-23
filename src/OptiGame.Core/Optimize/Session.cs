@@ -74,14 +74,15 @@ public sealed class OptimizerSession
     }
 
     public OptimizeRequest RequestFor(GameInfo g, IEnumerable<string>? temporaryExcluded = null, QualityStep? forcedStep = null,
-        double? recommendationTargetFps = null) =>
-        OptimizeRequest.Resolve(Prefs, g, Hw, Recommended(g), temporaryExcluded, forcedStep, recommendationTargetFps);
+        double? recommendationTargetFps = null, RecommendationPriority recommendationPriority = RecommendationPriority.Balanced) =>
+        OptimizeRequest.Resolve(Prefs, g, Hw, Recommended(g), temporaryExcluded, forcedStep, recommendationTargetFps, recommendationPriority);
 
     public GamePlan PlanFor(GameInfo g, IEnumerable<string>? temporaryExcluded = null, QualityStep? forcedStep = null,
-        IReadOnlyList<string>? runningImages = null, double? recommendationTargetFps = null)
+        IReadOnlyList<string>? runningImages = null, double? recommendationTargetFps = null,
+        RecommendationPriority recommendationPriority = RecommendationPriority.Balanced)
     {
         GamePlan plan;
-        var req = RequestFor(g, temporaryExcluded, forcedStep, recommendationTargetFps);
+        var req = RequestFor(g, temporaryExcluded, forcedStep, recommendationTargetFps, recommendationPriority);
         try { plan = Planner.Plan(g, Hw, req, Rules); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -102,10 +103,10 @@ public sealed class OptimizerSession
     /// <summary>Builds a plan and discovers settings locations on demand, including for skipped games.
     /// Uses recommendations already loaded by the session and does not fetch data.</summary>
     public GamePlan InspectPlan(GameInfo game, ConfigFinder? finder = null, double? recommendationTargetFps = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, RecommendationPriority recommendationPriority = RecommendationPriority.Balanced)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var plan = PlanFor(game, recommendationTargetFps: recommendationTargetFps);
+        var plan = PlanFor(game, recommendationTargetFps: recommendationTargetFps, recommendationPriority: recommendationPriority);
         plan.SettingsDiscovery = (finder ?? new ConfigFinder()).Find(
             game, new(Rules.FirstOrDefault(rule => rule.Matches(game)), AppIdFor(game)), cancellationToken);
         return plan;

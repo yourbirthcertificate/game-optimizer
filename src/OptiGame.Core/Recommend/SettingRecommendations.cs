@@ -2,6 +2,8 @@ using OptiGame.Core.Optimize;
 
 namespace OptiGame.Core.Recommend;
 
+public enum RecommendationPriority { Balanced, Look, Speed, Quiet }
+
 public sealed record RecommendationEvidence(string Source, string Detail, string? Url = null);
 
 public sealed record SettingRecommendation(
@@ -11,6 +13,7 @@ public sealed record SettingRecommendation(
 public sealed record SettingRecommendationReport(
     double? TargetFps, string? TargetSource, (int Width, int Height)? Resolution)
 {
+    public RecommendationPriority Priority { get; init; }
     public IReadOnlyList<SettingRecommendation> Settings { get; init; } = [];
     public IReadOnlyList<RecommendationEvidence> Evidence { get; init; } = [];
     public IReadOnlyList<string> Assumptions { get; init; } = [];
