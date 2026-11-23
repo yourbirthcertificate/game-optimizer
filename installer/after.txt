@@ -1,0 +1,12 @@
+Getting started
+
+1. Open the Games page. Your installed games are listed there. Pick one to see the recommended settings.
+2. Choose Preview, check what would change, then Apply. Undo is on the same page.
+3. Before you play, press Boost on the Dashboard, or turn on Auto-boost.
+4. Not sure a game will run well? Use Can this PC run it? on the game's page.
+
+Good to know
+
+- OptiGame+ checks for updates itself. When one is ready you see a banner on the Dashboard, and you choose when to restart.
+- Close OptiGame+ from the tray icon if you want it to stop completely.
+- The command line tool is optigame-cli (also gameopt) in the install folder.

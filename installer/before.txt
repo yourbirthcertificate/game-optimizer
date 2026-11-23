@@ -1,0 +1,12 @@
+OptiGame+ finds the games on this PC, recommends graphics settings for each, and clears resources while you play.
+
+What to expect
+
+- Every change is previewed first. Nothing is written until you click Apply.
+- Each Apply makes a backup of the file it changes, and you can undo it key by key.
+- Apply refuses while the game is running.
+- Boost closes background apps only when you click it. Auto-boost never closes anything on its own.
+- Your settings, backups and history live in %LOCALAPPDATA%\GameOpt. Installing, updating or uninstalling does not touch them.
+- It installs for your user only, so it does not need administrator rights.
+
+If you used GameClear before, OptiGame+ imports its list and settings the first time it starts.
