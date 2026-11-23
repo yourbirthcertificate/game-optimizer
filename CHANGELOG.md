@@ -3,6 +3,32 @@
 Versions follow [Semantic Versioning](https://semver.org). The number lives in one place,
 `Directory.Build.props`; the app, the setup program, the updater and the exe properties all read it.
 
+## 1.2.0
+
+Advice with sources, a look at where a game keeps its settings, and more engine work. Advice is shown apart from the
+edits Apply writes; nothing in it is changed for you.
+
+- Game details show the plan step and the estimate behind it, then suggestions for single settings with their reasons,
+  assumptions, what was left out and the fallback when the evidence is thin. Sources are listed with links.
+- "Where its settings are" looks for a game's settings on demand and lists each possible location with how sure it is
+  and why. It reads files only.
+- Cyberpunk 2077 and Elden Ring advice now comes from a reviewed, offline guide pack. Every citation has a retrieval date,
+  a review date and the game version or period it covers. Where sources differ, both values are shown with their scope.
+- Benchmark results appear as evidence only when two captures differ by one setting, and describe those captures, not
+  your game in general.
+- Advice priorities: Balanced, Look, Speed and Quiet. Quiet says when noise or power measurements are missing.
+- Counter-Strike 2 VSync can be changed, with preview, backup and byte-exact undo, for one verified local Steam account.
+- Rules can be drafted from before and after snapshots, for one game or a report across skipped games. A draft records the
+  step it was observed at, empty slots keep the setting, and a saved draft stays inactive until you review and enable it.
+- On a skipped game, "Draft a rule from snapshots" previews a draft from a before and an after snapshot: the step it
+  was observed at, and each setting's value per step with "keep" for the empty slots. Saving writes an inactive draft.
+- Game art: the list shows each game's own icon, and the detail header shows the whole key art at its own shape instead
+  of a cropped strip. Newer Steam games (no `header.jpg` on Steam's server) and Epic launcher games such as Fortnite now
+  get their art.
+- The setup program shows what to expect before installing and getting-started tips afterwards.
+- Fixed: a test stand-in named after a game (for example `Cyberpunk2077.exe` in the temp folder) was detected as a game
+  and boosted. Anything running from the temp folder is now ignored.
+
 ## 1.1.0
 
 New game support and a read-only config search from the engine work, plus the fixes after 1.0.0.
