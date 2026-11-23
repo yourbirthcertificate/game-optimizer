@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using OptiGame.Core.Library;
+using OptiGame.Core.Hardware;
 
 namespace OptiGame.Core.Optimize;
 
@@ -59,7 +60,7 @@ public sealed class RuleFile
     public bool SteamCloud { get; set; }
     /// <summary>
     /// Setting name -> value. ini keys are "Section/Key" (split at the last '/'), json keys are dotted paths.
-    /// A value is a literal, a "$variable", or a list of exactly 6 values, one per slider step.
+    /// A value is a literal, a "$variable", or a list of exactly 6 slots. A null slot keeps the setting at that step.
     /// </summary>
     public Dictionary<string, JsonElement> Set { get; set; } = new();
     /// <summary>Optional category per key (resolution, displayMode, vsync, fpsCap, renderScale, texture, quality) for "keep my settings".</summary>
@@ -165,7 +166,11 @@ public static class RuleSet
     public static object? Resolve(JsonElement v, int step, IReadOnlyDictionary<string, object> vars, out string? error)
     {
         error = null;
-        if (v.ValueKind == JsonValueKind.Array && v.GetArrayLength() == 6) v = v[step];
+        if (v.ValueKind == JsonValueKind.Array && v.GetArrayLength() == QualitySteps.Count)
+        {
+            v = v[step];
+            if (v.ValueKind == JsonValueKind.Null) return new Keep("no observed value for this step");
+        }
         switch (v.ValueKind)
         {
             case JsonValueKind.True: return true;

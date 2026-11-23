@@ -75,10 +75,17 @@ public static partial class RuleValidator
                 int n = v.GetArrayLength();
                 if (n == 6)
                 {
+                    if (v.EnumerateArray().All(e => e.ValueKind == JsonValueKind.Null))
+                        p.Add(RuleProblem.Error(at, "At least one slot must have a value."));
                     int i = 0;
-                    foreach (var e in v.EnumerateArray()) CheckScalar(p, $"{at}[{i++}]", e, fmt);
+                    foreach (var e in v.EnumerateArray())
+                    {
+                        if (e.ValueKind != JsonValueKind.Null)
+                            CheckScalar(p, FormattableString.Invariant($"{at}[{i}]"), e, fmt);
+                        i++;
+                    }
                 }
-                else if (n == 2 && v.EnumerateArray().All(e => e.TryGetInt32(out _)))
+                else if (n == 2 && v.EnumerateArray().All(e => e.ValueKind == JsonValueKind.Number && e.TryGetInt32(out _)))
                 {
                     if (fmt is "registry" or "kv") p.Add(RuleProblem.Error(at, $"[width, height] pairs cannot be written to {fmt} values"));
                 }
@@ -100,7 +107,7 @@ public static partial class RuleValidator
                 if (s is "$nativeResolution" or "$resolution" && fmt is "registry" or "kv")
                     p.Add(RuleProblem.Error(at, $"{s} is a width/height pair and cannot be written to a {fmt} value"));
                 return;
-            case JsonValueKind.Array when v.GetArrayLength() == 2 && v.EnumerateArray().All(e => e.TryGetInt32(out _)): return;
+            case JsonValueKind.Array when v.GetArrayLength() == 2 && v.EnumerateArray().All(e => e.ValueKind == JsonValueKind.Number && e.TryGetInt32(out _)): return;
             default:
                 p.Add(RuleProblem.Error(at, $"unsupported value {v.GetRawText()} (use a number, true/false, text, a $variable or [w, h])"));
                 return;

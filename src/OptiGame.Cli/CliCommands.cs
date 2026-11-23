@@ -351,9 +351,11 @@ public static partial class Cli
                 if (diffs.Count == 0) Console.WriteLine("No differences.");
                 foreach (var d in diffs) Console.WriteLine($"{d.Kind,-8} {d}");
                 return 0;
+            case "draft":
+                return DraftRule(rest, name => One(OptimizerSession.LoadForInspection(), name));
             case "wizard":
                 return await Wizard(rest);
-            default: throw new ArgumentException("Use: optigame-cli rule list|validate|snapshot|diff|wizard");
+            default: throw new ArgumentException("Use: optigame-cli rule list|validate|snapshot|diff|draft|wizard");
         }
     }
 

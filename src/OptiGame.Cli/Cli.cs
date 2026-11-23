@@ -67,6 +67,8 @@ Rules
                                       Validate guide JSON or the embedded reviewed pack
   optigame-cli rule snapshot --target PATH|HKCU/... [--format F] [--out FILE]
   optigame-cli rule diff BEFORE.json AFTER.json
+  optigame-cli rule draft --game NAME --before FILE --after FILE --step STEP [--key KEY]... [--save]
+                                      Preview observed values at one step. --save stores an inactive draft.
   optigame-cli rule wizard --game NAME --target PATH|HKCU/... [--format F]
                                       Guided: snapshot, change one setting in the game, snapshot again,
                                       pick keys and values, validate, save a local rule, preview it

@@ -112,7 +112,16 @@ public sealed class Snapshot
     {
         switch (n)
         {
-            case JsonObject o: foreach (var (k, v) in o) FlattenJson(s, v, prefix.Length == 0 ? k : prefix + "." + k); break;
+            case JsonObject o:
+                foreach (var (k, v) in o)
+                {
+                    var path = prefix.Length == 0 ? k : prefix + "." + k;
+                    if (k.Length == 0 || k.Contains('.'))
+                        s.Unreadable.Add(path + ": the property name cannot be addressed by a dotted rule key");
+                    else
+                        FlattenJson(s, v, path);
+                }
+                break;
             case JsonArray: s.Unreadable.Add($"{prefix}: lists are not editable"); break;
             case JsonValue v:
                 var kind = v.GetValueKind();
@@ -161,8 +170,9 @@ public static class RuleBuilder
     public static string TemplatePath(string path, GameInfo? game)
     {
         if (RuleSet.TryRegistryPath(path, out var sub)) return "HKCU/" + sub.Replace('\\', '/');
-        var p = path;
-        if (game is not null && p.StartsWith(game.InstallDir, StringComparison.OrdinalIgnoreCase)) p = "{install}" + p[game.InstallDir.Length..];
+        var p = path.Replace('/', Path.DirectorySeparatorChar);
+        if (game is not null && RelativeSuffix(p, game.InstallDir) is { } installSuffix)
+            p = "{install}" + installSuffix;
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var saved = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
         foreach (var (dir, token) in new[]
@@ -172,8 +182,16 @@ public static class RuleBuilder
             (docs, "%DOCUMENTS%"), (saved, "%SAVEDGAMES%"),
             (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "%USERPROFILE%"),
         })
-            if (dir.Length > 0 && p.StartsWith(dir, StringComparison.OrdinalIgnoreCase)) { p = token + p[dir.Length..]; break; }
+            if (RelativeSuffix(p, dir) is { } suffix) { p = token + suffix; break; }
         return p.Replace('\\', '/');
+
+        static string? RelativeSuffix(string path, string directory)
+        {
+            var root = Path.TrimEndingDirectorySeparator(directory.Replace('/', Path.DirectorySeparatorChar));
+            if (root.Length == 0) return null;
+            var prefix = Path.EndsInDirectorySeparator(root) ? root : root + Path.DirectorySeparatorChar;
+            return path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? path[(prefix.Length - 1)..] : null;
+        }
     }
 
     public static JsonNode TypedValue(string type, string text)
@@ -205,13 +223,6 @@ public static class RuleBuilder
     public static (string json, GameRule rule, List<RuleProblem> problems) Build(
         GameInfo game, string format, string targetPath, IEnumerable<DraftKey> keys, string? author = null, string? gameVersion = null, string? notes = null)
     {
-        var id = Prefs.NewId(game.Name);
-        var match = new JsonObject();
-        if (game.SteamAppId is not null) match["steamAppIds"] = new JsonArray(game.SteamAppId);
-        if (game.GogId is not null) match["gogIds"] = new JsonArray(game.GogId);
-        if (game.Id.StartsWith("epic:")) match["epicAppNames"] = new JsonArray(game.Id[5..]);
-        match["installDirs"] = new JsonArray(Path.GetFileName(game.InstallDir.TrimEnd('/', Path.DirectorySeparatorChar)));
-
         var set = new JsonObject();
         var cats = new JsonObject();
         var labels = new JsonObject();
@@ -230,16 +241,33 @@ public static class RuleBuilder
         }
         if (errors.Count > 0) throw new FormatException(string.Join("\n", errors));
 
+        return BuildDocument(game, format, targetPath, set, cats, labels,
+            notes ?? "Created with the rule wizard from before/after snapshots.",
+            "Rule wizard: before/after snapshots on the author's PC",
+            author, gameVersion, DateTime.Now.ToString("yyyy-MM-dd", Inv));
+    }
+
+    internal static (string json, GameRule rule, List<RuleProblem> problems) BuildDocument(
+        GameInfo game, string format, string targetPath, JsonObject set, JsonObject? cats, JsonObject? labels,
+        string notes, string source, string? author = null, string? gameVersion = null, string? verified = null)
+    {
+        var id = Prefs.NewId(game.Name);
+        var match = new JsonObject();
+        if (game.SteamAppId is not null) match["steamAppIds"] = new JsonArray(game.SteamAppId);
+        if (game.GogId is not null) match["gogIds"] = new JsonArray(game.GogId);
+        if (game.Id.StartsWith("epic:")) match["epicAppNames"] = new JsonArray(game.Id[5..]);
+        match["installDirs"] = new JsonArray(Path.GetFileName(game.InstallDir.TrimEnd('/', Path.DirectorySeparatorChar)));
+
         var file = new JsonObject { ["format"] = format, ["path"] = TemplatePath(targetPath, game), ["set"] = set };
-        if (cats.Count > 0) file["categories"] = cats;
-        if (labels.Count > 0) file["labels"] = labels;
+        if (cats is { Count: > 0 }) file["categories"] = cats;
+        if (labels is { Count: > 0 }) file["labels"] = labels;
         var root = new JsonObject
         {
             ["id"] = id, ["name"] = game.Name, ["match"] = match,
-            ["notes"] = notes ?? "Created with the rule wizard from before/after snapshots.",
+            ["notes"] = notes,
             ["author"] = author, ["gameVersion"] = gameVersion,
-            ["source"] = "Rule wizard: before/after snapshots on the author's PC",
-            ["verified"] = DateTime.Now.ToString("yyyy-MM-dd", Inv),
+            ["source"] = source,
+            ["verified"] = verified,
             ["files"] = new JsonArray(file),
         };
         foreach (var k in root.Where(kv => kv.Value is null).Select(kv => kv.Key).ToList()) root.Remove(k);
