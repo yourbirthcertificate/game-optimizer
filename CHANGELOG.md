@@ -3,6 +3,13 @@
 Versions follow [Semantic Versioning](https://semver.org). The number lives in one place,
 `Directory.Build.props`; the app, the setup program, the updater and the exe properties all read it.
 
+## 1.2.1
+
+Setup program only. The app itself is the same as 1.2.0.
+
+- The setup program has a welcome page with the OptiGame+ icon, a "What is new" page taken from this changelog, and a
+  tip shown while files install. Updates started from the app run silently and show none of this.
+
 ## 1.2.0
 
 Advice with sources, a look at where a game keeps its settings, and more engine work. Advice is shown apart from the
