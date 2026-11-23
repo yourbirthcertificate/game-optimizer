@@ -20,6 +20,7 @@ public sealed class OptimizerSession
     public List<GameRule> Rules { get; set; } = new();
     public List<string> Notes { get; } = new();
     public Dictionary<string, GameRecommendation> Recs { get; } = new();
+    readonly Dictionary<string, BenchmarkSettingComparison[]> _settingBenchmarks = new();
 
     public static OptimizerSession Load(HardwareInfo? hw = null) => Load(hw, forInspection: false);
 
@@ -88,6 +89,8 @@ public sealed class OptimizerSession
             plan.Skip(SkipKind.LocationNotFound, "Could not read settings: " + e.Message);
         }
         plan.Recommendation = Recs.GetValueOrDefault(g.Id);
+        if (plan.SettingAdvice is { } report && _settingBenchmarks.TryGetValue(g.Id, out var comparisons))
+            plan.SettingAdvice = BenchmarkSettingEvidence.Include(report, HardwareSummary, comparisons);
         if (runningImages is not null && ProcessGuard.RunningFrom(g.InstallDir, runningImages) is not null)
         {
             if (plan.HasChanges) plan.Status = PlanStatus.Running;
@@ -113,9 +116,17 @@ public sealed class OptimizerSession
     {
         var list = (games ?? Scan.Games).Where(g => PlanFor(g).Status != PlanStatus.Skipped).ToList();
         var recs = await Recommender.RecommendAllAsync(Hw, list, progress, ct, AppIdFor, TargetResolution);
+        var benchmarks = BenchmarkStore.All().ToLookup(result => result.GameId, StringComparer.Ordinal);
         foreach (var (id, r) in recs)
         {
-            if (BenchmarkStore.PreferredFor(id) is { } b)
+            var runs = benchmarks[id];
+            _settingBenchmarks[id] = runs.Where(run => run.CaptureContext is not null)
+                .GroupBy(run => run.CaptureContext!.PairId, StringComparer.Ordinal)
+                .Select(group => group.ToArray() is [var first, var second]
+                    ? BenchmarkSettingEvidence.Compare(first, second) ?? BenchmarkSettingEvidence.Compare(second, first)
+                    : null)
+                .OfType<BenchmarkSettingComparison>().ToArray();
+            if (runs.FirstOrDefault(result => result.Preferred) is { } b)
                 r.Measured = $"{b.Summary} ({b.Label}, {b.ProfileName ?? "?"} / {b.Step ?? "?"}, {b.Imported:d})";
             Recs[id] = r;
         }

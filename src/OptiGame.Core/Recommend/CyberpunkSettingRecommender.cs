@@ -76,7 +76,7 @@ internal static class CyberpunkSettingRecommender
         {
             "The comparison scales GPU work with the target FPS and OptiGame+'s existing resolution model.",
             "The chosen resolution is a scenario. CPU throughput, power limits, upscaling, and frame generation are outside this comparison.",
-            "This is a starting point for testing, with no measured FPS from this PC.",
+            "The modeled comparison is a starting point for testing. Any local benchmark evidence describes its own capture conditions.",
         };
         if (gpu.Kind == "variant")
             assumptions.Add("The GPU score is the existing laptop estimate derived from its desktop counterpart. Actual laptop power limits vary.");
