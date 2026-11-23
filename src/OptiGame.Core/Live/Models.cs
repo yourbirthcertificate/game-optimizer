@@ -120,6 +120,8 @@ public sealed class LiveData
     public string? SteamGridDbKey { get; set; }
     /// <summary>When the updater last asked GitHub (at most once a day automatically).</summary>
     public DateTime? LastUpdateCheckUtc { get; set; }
+    /// <summary>A version the user chose to skip; the banner stays away until a newer one appears.</summary>
+    public string? SkippedUpdateVersion { get; set; }
 }
 
 public enum Severity { Info, Good, Caution, Critical }

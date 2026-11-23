@@ -18,5 +18,6 @@ public partial class DashboardPage : UserControl
 
     async void Boost_Click(object sender, RoutedEventArgs e) => await _vm.BoostOrRestoreAsync();
     void TipAction_Click(object sender, RoutedEventArgs e) => ((sender as FrameworkElement)?.DataContext as Tip)?.Action?.Invoke();
+    void ShowUpdate_Click(object sender, RoutedEventArgs e) => _vm.ShowUpdateWindow();
     async void OpenVendor_Click(object sender, RoutedEventArgs e) => await _vm.OpenVendorAsync();
 }

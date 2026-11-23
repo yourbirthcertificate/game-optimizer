@@ -42,6 +42,7 @@ public partial class MainWindow : Window
         vm.Settings.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(LiveSettings.AutoBoost)) _tray.SetAuto(vm.Settings.AutoBoost); };
         vm.ToastRequested += (t, s) => _tray.Toast(t, s);
         vm.NavigateRequested += i => Nav.SelectedIndex = i;
+        vm.UpdateWindowRequested += () => { ShowFromTray(); new UpdateWindow(vm, ExitApp, this).ShowDialog(); };
 
         IsVisibleChanged += (_, _) => UpdateVisibility();
         StateChanged += (_, _) => UpdateVisibility();

@@ -518,16 +518,45 @@ public sealed class AppVm : Observable
     }
 
     // ------------------------------------------------------------ updates
+    public enum UpdatePhase { Idle, Available, Downloading, Ready, Failed }
+
     UpdateInfo? _update;
     string _updateStatus = "";
-    bool _updateBusy;
+    bool _updateBusy, _remindedThisSession;
+    double _updateProgress;
+    UpdatePhase _updatePhase;
+    string? _downloadedSetup;
+
+    /// <summary>Asks the main window to open the update dialog.</summary>
+    public event Action? UpdateWindowRequested;
+    public void ShowUpdateWindow() => UpdateWindowRequested?.Invoke();
+
     public string VersionText => $"OptiGame+ {UpdateService.Current}";
     public string UpdateStatus { get => _updateStatus; private set => Set(ref _updateStatus, value); }
     public bool UpdateAvailable => _update is not null;
     public bool UpdateBusy { get => _updateBusy; private set { if (Set(ref _updateBusy, value)) Raise(nameof(CanCheckUpdate)); } }
     public bool CanCheckUpdate => !_updateBusy;
-    public string InstallUpdateText => _update is null ? "" : UpdateService.CanInstall(_update) && UpdateService.RunsFromInstall()
-        ? $"Install {_update.Version}" : $"Open the {_update.Version} download page";
+    public double UpdateProgress { get => _updateProgress; private set => Set(ref _updateProgress, value); }
+    public UpdatePhase Phase { get => _updatePhase; private set { if (Set(ref _updatePhase, value)) Raise(nameof(UpdateActionText)); } }
+    public string UpdateVersionText => _update is null ? "" : _update.Version.ToString();
+    /// <summary>The release notes from GitHub, shown as plain text (they are untrusted).</summary>
+    public string UpdateNotes => _update is null ? "" : (string.IsNullOrWhiteSpace(_update.Notes) ? "No release notes were published." : _update.Notes.Trim());
+    public bool CanInstallInPlace => _update is not null && UpdateService.CanInstall(_update) && UpdateService.RunsFromInstall();
+    public bool UpdateBannerVisible => UpdatePolicy.ShouldOffer(_update, Store.Data.SkippedUpdateVersion, _remindedThisSession);
+    public string InstallUpdateText => _update is null ? "" : $"What is new in {_update.Version}";
+    public string UpdateActionText => Phase switch
+    {
+        UpdatePhase.Downloading => "Downloading...",
+        UpdatePhase.Ready => "Restart and install",
+        _ => CanInstallInPlace ? "Download update" : "Open the download page",
+    };
+
+    void RaiseUpdate()
+    {
+        foreach (var n in new[] { nameof(UpdateAvailable), nameof(InstallUpdateText), nameof(UpdateVersionText), nameof(UpdateNotes), nameof(CanInstallInPlace),
+                                  nameof(UpdateBannerVisible), nameof(UpdateActionText) })
+            Raise(n);
+    }
 
     /// <summary>Asks GitHub for a newer release: automatically at most once a day (when allowed), or whenever the user clicks.</summary>
     public async Task CheckForUpdateAsync(bool manual)
@@ -544,37 +573,58 @@ public sealed class AppVm : Observable
         {
             var (info, status) = await UpdateService.CheckAsync();
             Store.Data.LastUpdateCheckUtc = DateTime.UtcNow; Store.Save();
+            bool isNew = info is not null && _update?.Version != info.Version;
             _update = info; UpdateStatus = status;
-            Raise(nameof(UpdateAvailable)); Raise(nameof(InstallUpdateText));
-            if (info is not null && !manual) Message = $"OptiGame+ {info.Version} is available. Open Settings > Updates to install it.";
+            if (isNew) { _downloadedSetup = null; Phase = UpdatePhase.Available; UpdateProgress = 0; }
+            if (info is null) Phase = UpdatePhase.Idle;
+            if (manual) _remindedThisSession = false;
+            RaiseUpdate();
+            if (info is not null && !manual && UpdateBannerVisible)
+                Toast("OptiGame+ update available", $"Version {info.Version} is ready to download. Open OptiGame+ to see what is new.");
         }
         finally { UpdateBusy = false; }
     }
 
-    /// <summary>Downloads, verifies and runs the setup, then exits so it can replace the files. Falls back to the release page.</summary>
-    public async Task InstallUpdateAsync(Action exitApp)
+    public void RemindLater() { _remindedThisSession = true; RaiseUpdate(); }
+
+    public void SkipThisVersion()
+    {
+        if (_update is null) return;
+        Store.Data.SkippedUpdateVersion = _update.Version.ToString(); Store.Save();
+        RaiseUpdate();
+    }
+
+    /// <summary>The dialog's main button: download and verify the setup, then (second click) restart and install. Falls back to the release page.</summary>
+    public async Task UpdateStepAsync(Action exitApp)
     {
         if (_update is not { } u || UpdateBusy) return;
-        if (!UpdateService.CanInstall(u) || !UpdateService.RunsFromInstall())
+        if (!CanInstallInPlace)
         {
             Process.Start(new ProcessStartInfo(string.IsNullOrEmpty(u.PageUrl) ? UpdateService.ReleasesPage : u.PageUrl) { UseShellExecute = true });
             return;
         }
-        UpdateBusy = true;
+        if (Phase == UpdatePhase.Ready && _downloadedSetup is { } setup)
+        {
+            bool gameRunning = _game is { Confident: true } || (_game is not null && Settings.TreatFullscreenAsGame);
+            if (!UpdatePolicy.CanRestartNow(gameRunning, Booster.Active)) { UpdateStatus = UpdatePolicy.WaitMessage; return; }
+            UpdateStatus = "Installing and restarting...";
+            if (UpdateService.RunSetup(setup) is null) { UpdateStatus = "Could not start the installer."; return; }
+            exitApp();
+            return;
+        }
+        UpdateBusy = true; Phase = UpdatePhase.Downloading; UpdateProgress = 0;
         try
         {
-            var progress = new Progress<double>(p => UpdateStatus = $"Downloading {u.Version}... {p:P0}");
-            UpdateStatus = $"Downloading {u.Version}...";
-            var file = await UpdateService.DownloadAsync(u, UpdateService.UpdateDir, progress);
-            UpdateStatus = "Verified. Installing and restarting...";
-            if (UpdateService.RunSetup(file) is null) { UpdateStatus = "Could not start the installer."; return; }
-            exitApp();
+            var progress = new Progress<double>(p => { UpdateProgress = p; UpdateStatus = $"Downloading {u.Version}... {p:P0}"; });
+            _downloadedSetup = await UpdateService.DownloadAsync(u, UpdateService.UpdateDir, progress);
+            UpdateProgress = 1; Phase = UpdatePhase.Ready;
+            UpdateStatus = "Downloaded and verified. Restart to install; your settings and history are kept.";
         }
-        catch (Exception e) when (e is System.Net.Http.HttpRequestException or IOException or InvalidDataException or System.ComponentModel.Win32Exception)
+        catch (Exception e) when (e is System.Net.Http.HttpRequestException or IOException or InvalidDataException or System.ComponentModel.Win32Exception or TaskCanceledException)
         {
-            UpdateStatus = "The update failed: " + e.Message;
+            Phase = UpdatePhase.Failed; UpdateStatus = "The update failed: " + e.Message;
         }
-        finally { UpdateBusy = false; }
+        finally { UpdateBusy = false; RaiseUpdate(); }
     }
 
     // ------------------------------------------------------------ settings helpers
