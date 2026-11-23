@@ -352,7 +352,9 @@ public static partial class Cli
                 foreach (var d in diffs) Console.WriteLine($"{d.Kind,-8} {d}");
                 return 0;
             case "draft":
-                return DraftRule(rest, name => One(OptimizerSession.LoadForInspection(), name));
+                return rest.Contains("--all-skipped")
+                    ? DraftSkippedRules(rest, () => SkippedPlans(OptimizerSession.LoadForInspection()))
+                    : DraftRule(rest, name => One(OptimizerSession.LoadForInspection(), name));
             case "wizard":
                 return await Wizard(rest);
             default: throw new ArgumentException("Use: optigame-cli rule list|validate|snapshot|diff|draft|wizard");

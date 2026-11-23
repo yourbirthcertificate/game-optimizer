@@ -69,6 +69,8 @@ Rules
   optigame-cli rule diff BEFORE.json AFTER.json
   optigame-cli rule draft --game NAME --before FILE --after FILE --step STEP [--key KEY]... [--save]
                                       Preview observed values at one step. --save stores an inactive draft.
+  optigame-cli rule draft --all-skipped [--manifest FILE]
+                                      JSON report. Manifest entries use gameId, before, after, step and optional keys.
   optigame-cli rule wizard --game NAME --target PATH|HKCU/... [--format F]
                                       Guided: snapshot, change one setting in the game, snapshot again,
                                       pick keys and values, validate, save a local rule, preview it
