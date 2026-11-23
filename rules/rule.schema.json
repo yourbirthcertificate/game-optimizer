@@ -64,7 +64,7 @@
     "value": {
       "oneOf": [
         { "$ref": "#/$defs/scalar" },
-        { "type": "array", "items": { "$ref": "#/$defs/scalar" }, "minItems": 6, "maxItems": 6, "description": "One value per slider step, Low to Ultra." }
+        { "type": "array", "items": { "anyOf": [{ "$ref": "#/$defs/scalar" }, { "type": "null" }] }, "contains": { "$ref": "#/$defs/scalar" }, "minItems": 6, "maxItems": 6, "description": "One slot per slider step, Low to Ultra. Null keeps the setting at that step." }
       ]
     }
   }
