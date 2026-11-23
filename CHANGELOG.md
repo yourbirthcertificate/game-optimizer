@@ -3,8 +3,20 @@
 Versions follow [Semantic Versioning](https://semver.org). The number lives in one place,
 `Directory.Build.props`; the app, the setup program, the updater and the exe properties all read it.
 
-## Unreleased
+## 1.1.0
 
+New game support and a read-only config search from the engine work, plus the fixes after 1.0.0.
+
+- Settings discovery: for any game, a read-only search for where its settings probably are, with the evidence for each
+  candidate. A shared registry of file formats now handles the older formats too.
+- More games can be changed, each with preview, backup and key-level undo: Elden Ring (XML, resolution), Helldivers 2
+  (VSync) and Project Zomboid (VSync).
+- Game covers are kept apart from the small list icons.
+- Advice for single settings in Cyberpunk 2077 and Elden Ring: each graphics option gets a recommendation with the
+  evidence behind it and a fallback when the evidence is thin. This is advice only; nothing extra is written.
+- In-app update window: when a new version is out, a banner on the Dashboard opens a window with what changed. You
+  download it, then restart when it suits you. Remind me later and Skip this version are there too, and the restart
+  waits while a game is running or Boost is active.
 - Fixed menus and tooltips on icon buttons showing boxes instead of text (popups inherited the icon font). One set of
   styles now pins the text font for every menu, menu item and tooltip. The More menu opens under its button.
 - Cyberpunk 2077 (REDengine 4) is supported: quality steps map to the game's own options in `UserSettings.json`, edited
