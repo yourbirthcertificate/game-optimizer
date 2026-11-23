@@ -65,6 +65,8 @@ Rules
   optigame-cli rule list | validate [FILE...]
   optigame-cli rule validate --guide [FILE...]
                                       Validate guide JSON or the embedded reviewed pack
+  optigame-cli rule guides --game ID [--option KEY] [--scope TEXT]
+                                      List offline guide observations by game ID and source scope.
   optigame-cli rule snapshot --target PATH|HKCU/... [--format F] [--out FILE]
   optigame-cli rule diff BEFORE.json AFTER.json
   optigame-cli rule draft --game NAME --before FILE --after FILE --step STEP [--key KEY]... [--save]
