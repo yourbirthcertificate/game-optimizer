@@ -23,7 +23,9 @@ internal static class EldenRingSettingRecommender
             source = "native game cap";
         }
 
-        var report = new SettingRecommendationReport(fps, source, resolution);
+        var report = new SettingRecommendationReport(fps, source, resolution) { Priority = request.RecommendationPriority };
+        if (report.Priority == RecommendationPriority.Quiet)
+            return report with { FallbackReason = "Quiet priority needs measured noise or power data for these settings." };
         var guides = GuidePack.Reviewed;
         if (guides is null || guides.FindReviewedSource(SettingsGuide) is not { } benchmark ||
             guides.FindReviewedSource(XmlSample) is not { } optionTokens)
@@ -57,8 +59,11 @@ internal static class EldenRingSettingRecommender
                 "Try the suggested options in game to check their effect. The comparison does not measure the FPS gain on this PC.",
             ],
         };
-        if (work <= capacity)
+        var underPressure = work > capacity;
+        if (!underPressure && report.Priority != RecommendationPriority.Speed)
             return report with { FallbackReason = "Modeled GPU work fits the published reference. The comparison gives no reason to lower these settings." };
+        if (underPressure && report.Priority == RecommendationPriority.Look)
+            return report with { FallbackReason = "Look priority keeps blur and depth of field choices when the modeled FPS target calls for performance trials." };
 
         var advice = new List<SettingRecommendation>();
         var skipped = new List<string>();
@@ -103,7 +108,9 @@ internal static class EldenRingSettingRecommender
             }
 
             advice.Add(new(id, label, currentLevel, suggested,
-                "Modeled GPU work exceeds the reference. Digital Trends recommends turning this effect off."));
+                underPressure
+                    ? "Modeled GPU work exceeds the reference. Digital Trends recommends turning this effect off."
+                    : "Speed priority favors the Off value tested by Digital Trends."));
         }
     }
 }

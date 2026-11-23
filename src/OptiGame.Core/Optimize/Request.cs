@@ -1,6 +1,7 @@
 using System.Globalization;
 using OptiGame.Core.Hardware;
 using OptiGame.Core.Library;
+using OptiGame.Core.Recommend;
 
 namespace OptiGame.Core.Optimize;
 
@@ -19,6 +20,7 @@ public sealed class OptimizeRequest
     public double? FpsCap { get; init; }
     /// <summary>An optional advisory FPS target. Independent of the cap used when applying settings.</summary>
     public double? RecommendationTargetFps { get; init; }
+    public RecommendationPriority RecommendationPriority { get; init; }
     /// <summary>Target resolution; null = keep the game's.</summary>
     public (int w, int h)? Resolution { get; init; }
     public DisplayModeChoice DisplayMode { get; init; } = DisplayModeChoice.Recommended;
@@ -74,7 +76,8 @@ public sealed class OptimizeRequest
     }
 
     public static OptimizeRequest Resolve(Prefs prefs, GameInfo game, HardwareInfo hw, QualityStep recommended,
-        IEnumerable<string>? temporaryExcluded = null, QualityStep? forcedStep = null, double? recommendationTargetFps = null)
+        IEnumerable<string>? temporaryExcluded = null, QualityStep? forcedStep = null, double? recommendationTargetFps = null,
+        RecommendationPriority recommendationPriority = RecommendationPriority.Balanced)
     {
         var notes = new List<string>();
         var display = DisplayFor(prefs, game.Id, hw, notes);
@@ -92,6 +95,7 @@ public sealed class OptimizeRequest
         return new OptimizeRequest
         {
             Step = step, StepSource = source, ProfileName = prefs.ProfileFor(game.Id).Name, Display = display,
+            RecommendationPriority = recommendationPriority,
             FpsMode = mode, FpsCap = cap, RecommendationTargetFps = recommendationTargetFps,
             Resolution = ResolutionFor(prefs, game.Id, display, notes),
             DisplayMode = prefs.PickValue(game.Id, s => s.DisplayMode),
