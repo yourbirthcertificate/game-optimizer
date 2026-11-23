@@ -23,7 +23,7 @@ internal static class CyberpunkSettingRecommender
 
     internal static SettingRecommendationReport Recommend(HardwareInfo hardware, OptimizeRequest request, RedSettingsFile file)
     {
-        var (fps, source) = Target(request);
+        var (fps, source) = SettingRecommendationReport.ResolveTarget(request);
         var report = new SettingRecommendationReport(fps, source, request.Resolution);
         SettingRecommendationReport Fallback(string reason, params RecommendationEvidence[] evidence) =>
             report with { FallbackReason = reason, Evidence = evidence };
@@ -179,15 +179,4 @@ internal static class CyberpunkSettingRecommender
 
     static string Quoted(string value) => "\"" + value + "\"";
 
-    static (double? Fps, string? Source) Target(OptimizeRequest request)
-    {
-        if (request.RecommendationTargetFps is double explicitTarget)
-            return double.IsFinite(explicitTarget) && explicitTarget > 0 ? (explicitTarget, "chosen target") : (null, null);
-        if (request.FpsMode == FpsMode.Custom && request.FpsCap is double cap && double.IsFinite(cap) && cap > 0)
-            return (cap, "custom frame cap");
-        if (string.IsNullOrEmpty(request.Display.DeviceName) || !double.IsFinite(request.Display.CurrentHz) ||
-            request.Display.CurrentHz <= 3 || request.Display.CurrentHz >= int.MaxValue)
-            return (null, null);
-        return (request.Display.AutoFpsCap, "active display auto cap");
-    }
 }

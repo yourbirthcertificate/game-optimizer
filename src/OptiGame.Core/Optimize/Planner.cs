@@ -20,6 +20,8 @@ public static partial class Planner
     public static GamePlan Plan(GameInfo g, HardwareInfo hw, QualityStep step, IReadOnlyList<GameRule> rules) =>
         Plan(g, hw, OptimizeRequest.Default(hw, step), rules);
 
+    public static bool SupportsSettingAdvice(GameInfo game) => game.Engine == GameEngine.RedEngine || IsEldenRing(game);
+
     public static GamePlan Plan(GameInfo g, HardwareInfo hw, OptimizeRequest req, IReadOnlyList<GameRule> rules)
     {
         var plan = new GamePlan { Game = g, Step = req.Step, Request = req };
@@ -29,7 +31,7 @@ public static partial class Planner
 
         if (rule is null || !rule.ReplaceEngineHandler)
         {
-            if (IsEldenRing(g)) EldenRing(plan, req);
+            if (IsEldenRing(g)) EldenRing(plan, hw, req);
             else if (IsHelldivers(g)) Helldivers(plan, req);
             else if (IsZomboid(g)) Zomboid(plan, req);
             else switch (g.Engine)

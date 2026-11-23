@@ -1,3 +1,5 @@
+using OptiGame.Core.Optimize;
+
 namespace OptiGame.Core.Recommend;
 
 public sealed record RecommendationEvidence(string Source, string Detail, string? Url = null);
@@ -14,4 +16,16 @@ public sealed record SettingRecommendationReport(
     public IReadOnlyList<string> Assumptions { get; init; } = [];
     public IReadOnlyList<string> Skipped { get; init; } = [];
     public string? FallbackReason { get; init; }
+
+    internal static (double? Fps, string? Source) ResolveTarget(OptimizeRequest request)
+    {
+        if (request.RecommendationTargetFps is double explicitTarget)
+            return double.IsFinite(explicitTarget) && explicitTarget > 0 ? (explicitTarget, "chosen target") : (null, null);
+        if (request.FpsMode == FpsMode.Custom && request.FpsCap is double cap && double.IsFinite(cap) && cap > 0)
+            return (cap, "custom frame cap");
+        if (string.IsNullOrEmpty(request.Display.DeviceName) || !double.IsFinite(request.Display.CurrentHz) ||
+            request.Display.CurrentHz <= 3 || request.Display.CurrentHz >= int.MaxValue)
+            return (null, null);
+        return (request.Display.AutoFpsCap, "active display auto cap");
+    }
 }

@@ -47,6 +47,51 @@ public sealed class EldenRingTests : IDisposable
     GamePlan Preview() => Planner.Plan(_game, new HardwareInfo { NativeWidth = 2560, NativeHeight = 1440 },
         QualityStep.High, []);
 
+    [Fact]
+    public void Advisory_options_follow_the_target_and_leave_the_xml_untouched()
+    {
+        var input = Xml.Replace("</config>", """
+            <RaytracingQuality>DISABLE</RaytracingQuality>
+            <DepthOfField>MAX</DepthOfField>
+            <MotionBlur>HIGH</MotionBlur>
+            </config>
+            """);
+        File.WriteAllText(_path, input);
+        var hardware = new HardwareInfo { Gpu = "Radeon RX 580", GpuVramGb = 8, RamGb = 16 };
+        GamePlan Plan(double fps, params string[] preserve) => Planner.Plan(_game, hardware, new OptimizeRequest
+        {
+            Display = new DisplayInfo { DeviceName = "fixture", CurrentHz = 60 },
+            RecommendationTargetFps = fps,
+            Preserve = [.. preserve],
+        }, []);
+
+        var previous = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("nl-NL");
+            var plan = Plan(59.94);
+            var advice = Assert.IsType<OptiGame.Core.Recommend.SettingRecommendationReport>(plan.SettingAdvice);
+            Assert.Equal((1920, 1080), advice.Resolution);
+            Assert.Equal(2, advice.Settings.Count);
+            Assert.All(advice.Settings, option => Assert.Equal("Off", option.SuggestedValue));
+            Assert.Contains(advice.Evidence, item => item.Source == "Elden Ring player XML" && item.Url is not null);
+            Assert.Contains("59.94 FPS", OptiGame.Cli.Cli.SettingAdviceLines(advice).First());
+            Assert.Empty(plan.Files);
+            Assert.Equal(input, File.ReadAllText(_path));
+
+            Assert.Contains("fits", Plan(20).SettingAdvice!.FallbackReason);
+            Assert.Contains("60 FPS cap", Plan(90).SettingAdvice!.FallbackReason);
+            Assert.Empty(Plan(59.94, Categories.Quality).SettingAdvice!.Settings);
+
+            File.WriteAllText(_path, input.Replace("<MotionBlur>HIGH</MotionBlur>",
+                "<MotionBlur>HIGH</MotionBlur><MotionBlur>HIGH</MotionBlur>"));
+            var duplicate = Plan(59.94).SettingAdvice!;
+            Assert.Equal("Depth of field", Assert.Single(duplicate.Settings).Name);
+            Assert.Contains(duplicate.Skipped, line => line.StartsWith("Motion blur", StringComparison.Ordinal));
+        }
+        finally { CultureInfo.CurrentCulture = previous; }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
