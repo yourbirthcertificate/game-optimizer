@@ -15,6 +15,23 @@ public static partial class Cli
         throw new ArgumentException("--target-fps needs one positive, finite number, using a decimal point if needed.");
     }
 
+    internal static RecommendationPriority ReadRecommendationPriority(List<string> argv)
+    {
+        var priorities = Opt(argv, "--priority");
+        if (priorities.Count == 0) return RecommendationPriority.Balanced;
+        return priorities is [var value] ? value.ToLowerInvariant() switch
+        {
+            "balanced" => RecommendationPriority.Balanced,
+            "look" => RecommendationPriority.Look,
+            "speed" => RecommendationPriority.Speed,
+            "quiet" => RecommendationPriority.Quiet,
+            _ => throw InvalidPriority(),
+        } : throw InvalidPriority();
+
+        static ArgumentException InvalidPriority() =>
+            new("--priority needs one value: balanced, look, speed or quiet.");
+    }
+
     internal static IEnumerable<string> SettingAdviceLines(SettingRecommendationReport? report)
     {
         if (report is null) yield break;
@@ -23,6 +40,8 @@ public static partial class Cli
             ? FormattableString.Invariant($"Per-setting advice (advisory), target {fps:0.##} FPS ({report.TargetSource})") +
                 (report.Resolution is { } r ? FormattableString.Invariant($" at {r.Width}x{r.Height}") : "") + "."
             : "Per-setting advice (advisory).";
+        if (report.Priority != RecommendationPriority.Balanced)
+            yield return "Advisory priority: " + report.Priority.ToString().ToLowerInvariant() + ".";
         if (report.FallbackReason is { } reason) yield return "Per-setting advice unavailable: " + reason;
         foreach (var setting in report.Settings)
             yield return $"{setting.Name}: {setting.CurrentValue} → {setting.SuggestedValue}. {setting.Reason}";
