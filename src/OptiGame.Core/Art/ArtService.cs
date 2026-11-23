@@ -31,7 +31,7 @@ public static class ArtService
     public static string UserPath(GameInfo g) => UserPath(g, ArtSlot.Cover);
     public static string UserPath(GameInfo g, ArtSlot slot) =>
         Path.Combine(Dir, Safe(g.Id) + (slot == ArtSlot.SmallIcon ? ".icon.user.img" : ".user.img"));
-    static string MissPath(GameInfo g) => Path.Combine(Dir, Safe(g.Id) + ".none2");   // v2: the Epic lookup learned DieselGameBox, so older misses are not trusted
+    static string MissPath(GameInfo g) => Path.Combine(Dir, Safe(g.Id) + ".none3");   // v3: the lookups learned Epic DieselGameBox, the Steam library header and the hero, so older misses are not trusted
 
     /// <summary>The art already on disk for this game without any network: your image, the cache, or Steam's own cache.</summary>
     public static ArtResult? Local(GameInfo g, string? steamRoot = null)
@@ -61,7 +61,9 @@ public static class ArtService
         {
             if (Directory.Exists(dir))
                 foreach (var sub in Directory.GetDirectories(dir))
-                    if (Directory.GetFiles(sub, "header.jpg").FirstOrDefault() is { } f) return f;
+                    // Newer clients keep each image in its own hash-named folder, as header.jpg or library_header.jpg.
+                    foreach (var name in new[] { "header.jpg", "library_header.jpg" })
+                        if (Directory.GetFiles(sub, name).FirstOrDefault() is { } f) return f;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         return null;
@@ -133,7 +135,11 @@ public static class ArtService
         if (g.GogId is { Length: > 0 } gog)
             yield return ("GOG", async () => GogImageUrl(await http.GetStringAsync($"https://api.gog.com/products/{Uri.EscapeDataString(gog)}", ct)));
         if (g.SteamAppId is { } id)
+        {
             yield return ("Steam image server", () => Task.FromResult<string?>(SteamHeaderUrl(id)));
+            // Games added to Steam in the last couple of years have no header.jpg at that address; their wide art is the library hero.
+            yield return ("Steam image server (library hero)", () => Task.FromResult<string?>(SteamHeroUrl(id)));
+        }
         else
         {
             yield return ("Steam store (exact title)", async () =>
@@ -143,6 +149,7 @@ public static class ArtService
         }
     }
 
+    public static string SteamHeroUrl(string appId) => $"https://cdn.cloudflare.steamstatic.com/steam/apps/{appId}/library_hero.jpg";
     public static string SteamHeaderUrl(string appId) => $"https://cdn.cloudflare.steamstatic.com/steam/apps/{appId}/header.jpg";
 
     /// <summary>The app id of a store-search result whose title equals the game's name (case-insensitive); never a near match.</summary>

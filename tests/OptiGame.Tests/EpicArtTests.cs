@@ -28,3 +28,21 @@ public class EpicArtTests
         finally { File.Delete(file); }
     }
 }
+
+public class SteamArtTests
+{
+    [Fact]
+    public void Steam_local_cache_finds_library_header_in_a_hashed_folder()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "optigame-steam-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(root, "appcache", "librarycache", "2062430", "a157aa8de4bd9070194ddffb27c31636355dca05");
+        Directory.CreateDirectory(dir);
+        File.WriteAllBytes(Path.Combine(dir, "library_header.jpg"), [1]);
+        try { Assert.EndsWith("library_header.jpg", ArtService.SteamLocal("2062430", root)); }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public void The_library_hero_url_is_an_https_steam_image_url_on_an_allowed_host()
+        => Assert.True(ArtService.HostAllowed(ArtService.SteamHeroUrl("2062430")));
+}
