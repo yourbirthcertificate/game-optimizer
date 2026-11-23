@@ -144,6 +144,7 @@ public sealed partial class GameRow : Observable
             Raise(nameof(HasActions)); Raise(nameof(CanOpenFolder)); Raise(nameof(CanAddRule)); Raise(nameof(CanLaunch)); Raise(nameof(WarningText));
             Raise(nameof(HasNotControlled)); Raise(nameof(NotControlledText)); Raise(nameof(EffectiveText));
             RebuildChanges();
+            RebuildAdvice();
         }
     }
 
