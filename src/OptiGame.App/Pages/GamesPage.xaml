@@ -330,6 +330,75 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- advice: suggestions only, never written by Apply -->
+                        <Border Style="{StaticResource Card}" Margin="0,8,0,0" Visibility="{Binding ShowAdviceCard, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <Grid>
+                                    <TextBlock Text="Suggestions" FontWeight="SemiBold" />
+                                    <TextBlock Text="Advice only. Apply never changes these" Style="{StaticResource Secondary}" HorizontalAlignment="Right" />
+                                </Grid>
+                                <TextBlock Text="{Binding QualityLine}" Style="{StaticResource Secondary}" FontSize="13" Margin="0,4,0,4" TextWrapping="Wrap" />
+                                <ItemsControl ItemsSource="{Binding AdviceLines}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,4,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" />
+                                                    <TextBlock Text="{Binding Change}" Style="{StaticResource Mono}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Reason}" Style="{StaticResource Secondary}" FontSize="12" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="{Binding AdviceNotes}" Style="{StaticResource Secondary}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"
+                                           Visibility="{Binding HasAdviceNotes, Converter={StaticResource BoolToVis}}" />
+                                <Expander Header="Sources" Margin="0,8,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                          Visibility="{Binding HasEvidence, Converter={StaticResource BoolToVis}}">
+                                    <ItemsControl ItemsSource="{Binding EvidenceLines}" Margin="4,4,4,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,0,0,6">
+                                                    <TextBlock Text="{Binding Source}" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Secondary}" FontSize="12" TextWrapping="Wrap" />
+                                                    <Button Style="{StaticResource Link}" Content="{Binding LinkText}" Click="OpenEvidence_Click"
+                                                            Visibility="{Binding HasUrl, Converter={StaticResource BoolToVis}}" HorizontalAlignment="Left" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Expander>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- where the settings live: looked up only when asked -->
+                        <Expander Header="Where its settings are" Margin="0,4,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                            <StackPanel Margin="4,4,4,2">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Look for them" Click="FindLocations_Click" IsEnabled="{Binding CanLocate}" />
+                                    <TextBlock Text="{Binding LocationStatus}" Style="{StaticResource Secondary}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding CandidateLines}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,0,8">
+                                                <TextBlock Text="{Binding Path}" Style="{StaticResource Mono}" TextWrapping="Wrap" />
+                                                <TextBlock FontSize="12" Style="{StaticResource Secondary}" TextWrapping="Wrap">
+                                                    <Run Text="{Binding Confidence, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Format, Mode=OneWay}" />
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding Evidence}" FontSize="12" Style="{StaticResource Secondary}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding DiagnosticLines}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate><TextBlock Text="{Binding}" FontSize="12" Style="{StaticResource Secondary}" TextWrapping="Wrap" /></DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Expander>
+
                         <!-- per-game settings, collapsed away unless wanted -->
                         <Expander Header="Frame rate and display" IsExpanded="True" Margin="0,8,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                                   Visibility="{Binding IsSkipped, Converter={StaticResource InvertBoolToVis}}">

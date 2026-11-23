@@ -288,7 +288,7 @@ public sealed partial class MainViewModel
 {
     GameRow? _selected;
     /// <summary>The game shown in the detail panel.</summary>
-    public GameRow? Selected { get => _selected; set { if (Set(ref _selected, value)) { Raise(nameof(HasSelected)); Raise(nameof(NoSelected)); } } }
+    public GameRow? Selected { get => _selected; set { var old = _selected; if (Set(ref _selected, value)) { old?.CancelLocations(); Raise(nameof(HasSelected)); Raise(nameof(NoSelected)); } } }
     public bool HasSelected => _selected is not null;
     public bool NoSelected => _selected is null;
 

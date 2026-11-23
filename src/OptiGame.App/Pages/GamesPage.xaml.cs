@@ -270,6 +270,18 @@ public partial class GamesPage : UserControl
         if ((sender as FrameworkElement)?.DataContext is ChangeItem item && _vm.Selected is { } r) r.AlwaysKeep(item);
     }
 
+    async void FindLocations_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm.Selected is { } r) await r.FindLocationsAsync();
+    }
+
+    void OpenEvidence_Click(object sender, RoutedEventArgs e)
+    {
+        // Only https links from the evidence list are opened, in the default browser.
+        if ((sender as FrameworkElement)?.DataContext is EvidenceLine { HasUrl: true } line)
+            try { Process.Start(new ProcessStartInfo(line.Url!) { UseShellExecute = true }); } catch (Win32Exception) { }
+    }
+
     void Undo_Click(object sender, RoutedEventArgs e) => History_Click(sender, null);
 
     // ------------------------------------------------------------------ live actions
