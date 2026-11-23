@@ -36,6 +36,8 @@ public sealed class GameDetector
         "wallpaper", "ui32", "vrserver", "vrmonitor", "vrcompositor"   // Steam-library tools that are not games
     };
 
+    static readonly List<string> TempRoots = Roots(new[] { Path.GetTempPath() });
+
     readonly Dictionary<int, (string name, string? path)> _paths = new();
     readonly int _session = Process.GetCurrentProcess().SessionId;
 
@@ -116,6 +118,8 @@ public sealed class GameDetector
     internal static (string? why, int score) Why(string name, string path, HashSet<string> userPaths, List<string> lib, List<string> usr)
     {
         string lname = name.ToLowerInvariant();
+        // Test runs and installers unpack stand-in programs named after real games into the temp folder. Never a game.
+        if (IsUnder(path, TempRoots)) return (null, 0);
         if (userPaths.Contains(path) || IsUnder(path, usr)) return ("On your game list", 3);
         if (Excluded.Any(e => lname.Contains(e))) return (null, 0);
         if (path.Contains(@"\steamworks shared\", StringComparison.OrdinalIgnoreCase)) return (null, 0);
