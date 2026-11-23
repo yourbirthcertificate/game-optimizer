@@ -1,5 +1,7 @@
 using OptiGame.Core.Hardware;
 using OptiGame.Core.Library;
+using OptiGame.Core.Library.ConfigDiscovery;
+using OptiGame.Core.Recommend;
 using Microsoft.Win32;
 
 namespace OptiGame.Core.Optimize;
@@ -59,7 +61,25 @@ public sealed class GamePlan
     public required GameInfo Game { get; init; }
     public required QualityStep Step { get; init; }
     public OptimizeRequest? Request { get; init; }
-    public OptiGame.Core.Recommend.SettingRecommendationReport? SettingAdvice { get; internal set; }
+    /// <summary>The session's loaded quality recommendation. Step is the effective choice for this plan.</summary>
+    public GameRecommendation? Recommendation { get; internal set; }
+    public SettingRecommendationReport? SettingAdvice { get; internal set; }
+    /// <summary>The quality recommendation's reason followed by the per-setting report's source evidence.</summary>
+    public IReadOnlyList<RecommendationEvidence> Evidence
+    {
+        get
+        {
+            var settingEvidence = SettingAdvice?.Evidence ?? [];
+            if (Recommendation is not { } recommendation) return settingEvidence;
+            var source = recommendation.Kind is RecommendationBasis.PublishedRecommended or RecommendationBasis.MinimumEstimate
+                ? recommendation.Basis : recommendation.KindLabel;
+            return [new(source, recommendation.Reason), .. settingEvidence];
+        }
+    }
+
+    /// <summary>Null until settings discovery is requested. The result also includes discovery diagnostics.</summary>
+    public ConfigDiscoveryResult? SettingsDiscovery { get; internal set; }
+    public IReadOnlyList<ConfigCandidate> SettingsCandidates => SettingsDiscovery?.Candidates ?? [];
     public List<FileEdit> Files { get; } = new();
     public List<RegistryEdit> Registry { get; } = new();
     /// <summary>Changes left out by "keep my settings", a profile, or a one-off untick in the preview.</summary>

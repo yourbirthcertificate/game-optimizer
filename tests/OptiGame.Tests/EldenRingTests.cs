@@ -5,6 +5,7 @@ using OptiGame.Core.Hardware;
 using OptiGame.Core.Library;
 using OptiGame.Core.Library.ConfigDiscovery;
 using OptiGame.Core.Optimize;
+using OptiGame.Core.Recommend;
 using OptiGame.Core.Safety;
 
 namespace OptiGame.Tests;
@@ -46,6 +47,46 @@ public sealed class EldenRingTests : IDisposable
 
     GamePlan Preview() => Planner.Plan(_game, new HardwareInfo { NativeWidth = 2560, NativeHeight = 1440 },
         QualityStep.High, []);
+
+    [Fact]
+    public void Inspection_exposes_loaded_quality_evidence_advice_and_a_confirmed_candidate()
+    {
+        var input = Xml.Replace("</config>", """
+            <RaytracingQuality>DISABLE</RaytracingQuality>
+            <DepthOfField>MAX</DepthOfField>
+            <MotionBlur>HIGH</MotionBlur>
+            </config>
+            """);
+        File.WriteAllText(_path, input);
+        var hardware = new HardwareInfo
+        {
+            Gpu = "Radeon RX 580",
+            Displays = [new DisplayInfo { DeviceName = "fixture", CurrentWidth = 1920, CurrentHeight = 1080, CurrentHz = 60 }],
+        };
+        var recommendation = Recommender.Recommend(hardware, new("Fixture publisher", "Radeon RX 580", null, null), (1920, 1080));
+        var session = new OptimizerSession { Hw = hardware, Prefs = new(), Scan = new() };
+        session.Recs[_game.Id] = recommendation;
+        var roots = new ConfigRoots("", "", Planner.RoamingAppData, "", "", "", "", Path.Combine(_root, "data"));
+        var finder = new ConfigFinder(roots, _ => throw new InvalidOperationException("Unexpected registry read."));
+
+        var ordinary = session.PlanFor(_game, forcedStep: QualityStep.Low);
+        Assert.Equal(QualityStep.Low, ordinary.Step);
+        Assert.Same(recommendation, ordinary.Recommendation);
+        Assert.Null(ordinary.SettingsDiscovery);
+        Assert.Empty(ordinary.SettingsCandidates);
+
+        var inspected = session.InspectPlan(_game, finder, recommendationTargetFps: 59.94);
+        Assert.Same(recommendation, inspected.Recommendation);
+        Assert.Equal(new RecommendationEvidence("Fixture publisher", recommendation.Reason), inspected.Evidence[0]);
+        var advice = Assert.IsType<SettingRecommendationReport>(inspected.SettingAdvice);
+        Assert.Equal(59.94, advice.TargetFps);
+        Assert.Equal(advice.Evidence, inspected.Evidence.Skip(1));
+        Assert.Contains(inspected.Evidence, item => item.Source == "Digital Trends" && item.Url is not null);
+        var candidate = Assert.Single(inspected.SettingsCandidates);
+        Assert.Equal(_path, candidate.Path);
+        Assert.Equal(ConfigConfidence.Confirmed, candidate.Confidence);
+        Assert.Equal(input, File.ReadAllText(_path));
+    }
 
     [Fact]
     public void Advisory_options_follow_the_target_and_leave_the_xml_untouched()

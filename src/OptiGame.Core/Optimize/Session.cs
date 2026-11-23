@@ -2,6 +2,7 @@ using System.Globalization;
 using OptiGame.Core.Bench;
 using OptiGame.Core.Hardware;
 using OptiGame.Core.Library;
+using OptiGame.Core.Library.ConfigDiscovery;
 using OptiGame.Core.Recommend;
 using OptiGame.Core.Safety;
 
@@ -86,11 +87,24 @@ public sealed class OptimizerSession
             plan = new GamePlan { Game = g, Step = req.Step, Request = req, Status = PlanStatus.Skipped };
             plan.Skip(SkipKind.LocationNotFound, "Could not read settings: " + e.Message);
         }
+        plan.Recommendation = Recs.GetValueOrDefault(g.Id);
         if (runningImages is not null && ProcessGuard.RunningFrom(g.InstallDir, runningImages) is not null)
         {
             if (plan.HasChanges) plan.Status = PlanStatus.Running;
             plan.Actions.Add(PlanAction.CloseGame);
         }
+        return plan;
+    }
+
+    /// <summary>Builds a plan and discovers settings locations on demand, including for skipped games.
+    /// Uses recommendations already loaded by the session and does not fetch data.</summary>
+    public GamePlan InspectPlan(GameInfo game, ConfigFinder? finder = null, double? recommendationTargetFps = null,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var plan = PlanFor(game, recommendationTargetFps: recommendationTargetFps);
+        plan.SettingsDiscovery = (finder ?? new ConfigFinder()).Find(
+            game, new(Rules.FirstOrDefault(rule => rule.Matches(game)), AppIdFor(game)), cancellationToken);
         return plan;
     }
 

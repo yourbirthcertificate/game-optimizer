@@ -1,5 +1,6 @@
 using System.Globalization;
 using OptiGame.Core;
+using OptiGame.Core.Hardware;
 using OptiGame.Core.Library;
 using OptiGame.Core.Library.ConfigDiscovery;
 using OptiGame.Core.Optimize;
@@ -114,6 +115,30 @@ public sealed class ConfigDiscoveryTests : IDisposable
         Assert.Contains(candidate.Evidence, item => item.Observation.Contains("FullScreen_h123", StringComparison.Ordinal));
         Assert.Contains(candidate.Evidence, item => item.Source == "Matched rule");
         Assert.Contains(result.Diagnostics, item => item.Code == "blocked-path" && item.Path!.StartsWith("HKLM", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Inspection_preserves_a_missing_rule_candidate_and_diagnostic_for_a_skipped_game()
+    {
+        var game = Game("Fixture");
+        var path = Path.Combine(_install, "missing.ini");
+        var file = new RuleFile { Format = "ini", Path = "{install}/missing.ini" };
+        var session = new OptimizerSession { Hw = new HardwareInfo(), Prefs = new(), Scan = new(), Rules = [Rule(file)] };
+        var finder = Finder();
+
+        Assert.Throws<OperationCanceledException>(() => session.InspectPlan(game, finder, cancellationToken: new(true)));
+        var plan = session.InspectPlan(game, finder);
+        Assert.Equal(PlanStatus.Skipped, plan.Status);
+        Assert.Equal(SkipKind.LocationNotFound, plan.SkipKind);
+        Assert.Empty(plan.Evidence);
+        Assert.Empty(plan.Files);
+        var discovery = Assert.IsType<ConfigDiscoveryResult>(plan.SettingsDiscovery);
+        var candidate = Assert.Single(plan.SettingsCandidates);
+        Assert.Equal(path, candidate.Path);
+        Assert.Equal(ConfigConfidence.Lead, candidate.Confidence);
+        Assert.Contains(candidate.Evidence, item => item.Source == "Matched rule");
+        Assert.Contains(discovery.Diagnostics, item => item.Path == path && item.Code == "missing");
+        Assert.False(File.Exists(path));
     }
 
     [Fact]
