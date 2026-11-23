@@ -35,6 +35,31 @@ public sealed class PerSettingRecommendationTests
     }
 
     [Fact]
+    public void Reported_memory_rounds_to_the_nearest_whole_gigabyte()
+    {
+        var file = RedSettingsFile.Parse(Fixture());
+        var hardware = Hardware();
+        hardware.RamGb = 15.7;
+        hardware.GpuVramGb = 7.8;
+        var report = CyberpunkSettingRecommender.Recommend(hardware, Request(60), file);
+        Assert.Null(report.FallbackReason);
+        Assert.NotEmpty(report.Settings);
+
+        hardware.RamGb = 15.4;
+        var lowMemory = CyberpunkSettingRecommender.Recommend(hardware, Request(60), file);
+        Assert.Empty(lowMemory.Settings);
+        Assert.Contains("memory", lowMemory.FallbackReason);
+    }
+
+    [Fact]
+    public void The_cli_labels_the_reason_that_per_setting_advice_is_unavailable()
+    {
+        var report = new SettingRecommendationReport(null, null, null) { FallbackReason = "The FPS target is unknown." };
+        Assert.Contains("Per-setting advice unavailable: The FPS target is unknown.",
+            OptiGame.Cli.Cli.SettingAdviceLines(report));
+    }
+
+    [Fact]
     public void Insufficient_memory_unknown_gpu_and_kept_settings_use_the_fallback()
     {
         var file = RedSettingsFile.Parse(Fixture());

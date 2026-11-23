@@ -14,9 +14,9 @@ internal static class CyberpunkSettingRecommender
     const string RequirementsUrl = "https://support.cdprojektred.com/en/cyberpunk/pc/sp-technical/issue/1556/cyberpunk-2077-system-requirements";
     const string OptionTestsUrl = "https://www.pcgamer.com/the-best-settings-for-cyberpunk-2077/";
     static readonly RecommendationEvidence Requirements = new("CD PROJEKT RED",
-        "Update 2.0 and Phantom Liberty list 1080p High at 60 FPS without ray tracing, with 8 GB VRAM and 16 GB RAM.", RequirementsUrl);
+        "The recommended non-ray-tracing tier for the base game from Update 2.0 and Phantom Liberty lists High at 1080p, 60 expected FPS, 8 GB VRAM, and 16 GB RAM.", RequirementsUrl);
     static readonly RecommendationEvidence OptionTests = new("PC Gamer",
-        "The 2.0 settings tests use High fog and clouds for raster graphics and recommend reducing them to gain performance without the larger visual cost of reducing reflections.", OptionTestsUrl);
+        "The published raster settings list High for volumetric fog and clouds. PC Gamer suggests turning both down first because it found a smaller visual impact than lowering screen space reflections.", OptionTestsUrl);
 
     internal static SettingRecommendationReport Recommend(HardwareInfo hardware, OptimizeRequest request, RedSettingsFile file)
     {
@@ -52,7 +52,9 @@ internal static class CyberpunkSettingRecommender
         if (!double.IsFinite(hardware.GpuVramGb) || !double.IsFinite(hardware.RamGb) ||
             hardware.GpuVramGb <= 0 || hardware.RamGb <= 0)
             return Fallback("Detected VRAM and RAM are needed for this comparison.", Requirements, specs);
-        if (hardware.GpuVramGb < VramMinimum || hardware.RamGb < RamMinimum)
+        // Windows can report slightly less usable memory than the rated capacity.
+        if (Math.Round(hardware.GpuVramGb, MidpointRounding.AwayFromZero) < VramMinimum ||
+            Math.Round(hardware.RamGb, MidpointRounding.AwayFromZero) < RamMinimum)
             return Fallback("The PC is below the memory listed for the High reference. These option tests do not establish what will make up that deficit.", Requirements, specs);
 
         // Use the existing resolution model and compare only relative GPU work. Do not predict FPS.

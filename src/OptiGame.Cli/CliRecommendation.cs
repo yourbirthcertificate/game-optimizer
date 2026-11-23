@@ -23,7 +23,7 @@ public static partial class Cli
             ? FormattableString.Invariant($"Per-setting advice (advisory), target {fps:0.##} FPS ({report.TargetSource})") +
                 (report.Resolution is { } r ? FormattableString.Invariant($" at {r.Width}x{r.Height}") : "") + "."
             : "Per-setting advice (advisory).";
-        if (report.FallbackReason is { } reason) yield return "Existing quality-step recommendation: " + reason;
+        if (report.FallbackReason is { } reason) yield return "Per-setting advice unavailable: " + reason;
         foreach (var setting in report.Settings)
             yield return $"{setting.Name}: {setting.CurrentValue} → {setting.SuggestedValue}. {setting.Reason}";
         foreach (var skip in report.Skipped) yield return "Kept: " + skip;
