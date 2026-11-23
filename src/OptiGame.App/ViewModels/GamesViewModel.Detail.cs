@@ -58,10 +58,13 @@ public sealed partial class GameRow
         }
     }
 
-    public ImageSource? SmallIcon => _smallIconOverride ?? Art;
+    /// <summary>The list thumbnail is the game's icon (yours, or the one from its exe), never the wide cover.</summary>
+    public ImageSource? SmallIcon => _smallIconOverride ?? _exeIcon;
+    ImageSource? _exeIcon;
     public bool HasSmallIcon => SmallIcon is not null;
     public bool ShowSmallInitials => SmallIcon is null;
-    public Stretch SmallIconStretch => _smallIconOverride is not null || IsIcon ? Stretch.Uniform : Stretch.UniformToFill;
+    /// <summary>Always the whole image: covers, store art and icons have different shapes, and the tile shows what is left over.</summary>
+    public Stretch SmallIconStretch => Stretch.Uniform;
     public bool HasArt => _art is not null;
     public bool ShowInitials => _art is null;
     public string ArtSource { get => _artSource; private set => Set(ref _artSource, value); }
@@ -101,6 +104,7 @@ public sealed partial class GameRow
     {
         var request = ++_coverRequest;
         _smallIconOverride = ReadImage(ArtService.UserPath(Game, ArtSlot.SmallIcon), ArtSlot.SmallIcon);
+        _exeIcon = Exes.Select(ExeIcon).FirstOrDefault(i => i is not null);
         RefreshSmallIcon();
 
         ArtResult? res = null;

@@ -275,6 +275,16 @@ public partial class GamesPage : UserControl
         if (_vm.Selected is { } r) await r.FindLocationsAsync();
     }
 
+    void ChooseSnapshot(Action<GameRow, string> set)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Title = "Choose a snapshot", Filter = "Snapshot (*.json)|*.json", CheckFileExists = true };
+        if (dlg.ShowDialog(Window.GetWindow(this)) == true && _vm.Selected is { } r) set(r, dlg.FileName);
+    }
+    void ChooseBefore_Click(object sender, RoutedEventArgs e) => ChooseSnapshot((r, f) => r.DraftBefore = f);
+    void ChooseAfter_Click(object sender, RoutedEventArgs e) => ChooseSnapshot((r, f) => r.DraftAfter = f);
+    async void PreviewDraft_Click(object sender, RoutedEventArgs e) { if (_vm.Selected is { } r) await r.PreviewDraftAsync(); }
+    async void SaveDraft_Click(object sender, RoutedEventArgs e) { if (_vm.Selected is { } r) await r.SaveDraftAsync(); }
+
     void OpenEvidence_Click(object sender, RoutedEventArgs e)
     {
         // Only https links from the evidence list are opened, in the default browser.
